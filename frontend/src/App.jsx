@@ -1,122 +1,121 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import LoginPage from './views/LoginPage';
+import AdminLoginPage from './views/AdminLoginPage';
+import LandingPageView from './views/LandingPageView';
 
-function App() {
-  const [count, setCount] = useState(0)
+import DashboardView from './views/DashboardView';
+import PatientsView from './views/PatientsView';
+import DoctorsView from './views/DoctorsView';
+import AppointmentsView from './views/AppointmentsView';
+import InpatientView from './views/InpatientView';
+import EMRView from './views/EMRView';
+import LaboratoryView from './views/LaboratoryView';
+import PharmacyView from './views/PharmacyView';
+import BillingView from './views/BillingView';
+import StaffView from './views/StaffView';
+import ReportsView from './views/ReportsView';
+import AuditView from './views/AuditView';
+
+function MainApp() {
+  const { isAuthenticated, currentRole } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [theme, setTheme] = useState('light');
+  const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'portal' | 'admin-login'
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // If in public landing page mode, render LandingPageView
+  if (viewMode === 'landing') {
+    return (
+      <LandingPageView
+        onEnterPortal={() => setViewMode('portal')}
+        onEnterAdminLogin={() => setViewMode('admin-login')}
+      />
+    );
+  }
+
+  // If entering dedicated admin login portal and not authenticated
+  if (viewMode === 'admin-login' && !isAuthenticated) {
+    return (
+      <AdminLoginPage
+        onBackToLanding={() => setViewMode('landing')}
+        onGoToStaffLogin={() => setViewMode('portal')}
+      />
+    );
+  }
+
+  // If entering clinical portal and not authenticated, render LoginPage with option to go back or switch to admin
+  if (!isAuthenticated) {
+    return (
+      <LoginPage
+        onBackToLanding={() => setViewMode('landing')}
+        onGoToAdminLogin={() => setViewMode('admin-login')}
+      />
+    );
+  }
+
+  const renderView = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardView onNavigate={(tab) => setActiveTab(tab)} />;
+      case 'patients':
+        return <PatientsView />;
+      case 'doctors':
+        return <DoctorsView />;
+      case 'appointments':
+        return <AppointmentsView />;
+      case 'inpatient':
+        return <InpatientView />;
+      case 'emr':
+        return <EMRView />;
+      case 'laboratory':
+        return <LaboratoryView />;
+      case 'pharmacy':
+        return <PharmacyView />;
+      case 'billing':
+        return <BillingView />;
+      case 'staff':
+        return <StaffView />;
+      case 'reports':
+        return <ReportsView />;
+      case 'audit':
+        return <AuditView />;
+      default:
+        return <DashboardView onNavigate={(tab) => setActiveTab(tab)} />;
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div className="app-container">
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onGoToLanding={() => setViewMode('landing')}
+      />
+      <div className="main-content">
+        <Header theme={theme} toggleTheme={toggleTheme} />
+        <main className="page-wrapper">
+          {renderView()}
+        </main>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}
+

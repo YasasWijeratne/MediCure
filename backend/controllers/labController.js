@@ -92,5 +92,18 @@ export const labController = {
       console.error('labController.update error:', err);
       res.status(500).json({ success: false, message: 'Failed to update lab test' });
     }
+  },
+
+  async delete(req, res) {
+    try {
+      const deleted = await labModel.delete(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: 'Lab test not found' });
+      }
+      res.json({ success: true, message: 'Lab test order cancelled and removed' });
+    } catch (err) {
+      console.error('labController.delete error:', err);
+      res.status(500).json({ success: false, message: 'Failed to delete lab test' });
+    }
   }
 };

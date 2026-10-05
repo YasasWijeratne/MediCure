@@ -104,5 +104,34 @@ export const emrModel = {
 
     dbStore.prescriptions.unshift(newPrescription);
     return newPrescription;
+  },
+
+  async updatePatientVitals(patientId, vitalsData) {
+    const patient = dbStore.patients.find(p => p.id === patientId);
+    if (!patient) return null;
+
+    const height = parseFloat(vitalsData.height_cm || patient.vitals?.height_cm || 170);
+    const weight = parseFloat(vitalsData.weight_kg || patient.vitals?.weight_kg || 70);
+    const bmiVal = (weight / Math.pow(height / 100, 2)).toFixed(1);
+
+    patient.vitals = {
+      blood_group: vitalsData.blood_group || patient.vitals?.blood_group || 'O+',
+      height_cm: height,
+      weight_kg: weight,
+      bmi: bmiVal,
+      bmi_status: parseFloat(bmiVal) < 18.5 ? 'Underweight' : parseFloat(bmiVal) <= 24.9 ? 'Normal' : 'Elevated',
+      heart_rate: parseInt(vitalsData.heart_rate || patient.vitals?.heart_rate || 72),
+      hr_status: vitalsData.hr_status || patient.vitals?.hr_status || 'Normal Sinus',
+      bp_systolic: parseInt(vitalsData.bp_systolic || patient.vitals?.bp_systolic || 120),
+      bp_diastolic: parseInt(vitalsData.bp_diastolic || patient.vitals?.bp_diastolic || 80),
+      bp_status: vitalsData.bp_status || patient.vitals?.bp_status || 'Controlled',
+      spo2: parseInt(vitalsData.spo2 || patient.vitals?.spo2 || 98),
+      spo2_status: vitalsData.spo2_status || patient.vitals?.spo2_status || 'Room Air',
+      temperature: parseFloat(vitalsData.temperature || patient.vitals?.temperature || 98.4),
+      temp_status: vitalsData.temp_status || patient.vitals?.temp_status || 'Afebrile',
+      last_updated: new Date().toISOString()
+    };
+
+    return patient;
   }
 };

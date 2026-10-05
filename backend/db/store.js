@@ -11,6 +11,7 @@ export const dbStore = {
     { id: 'r5', name: 'Laboratory Staff', permissions: ['lab.manage', 'patients.view'] },
     { id: 'r6', name: 'Pharmacist', permissions: ['pharmacy.manage', 'prescriptions.view'] },
     { id: 'r7', name: 'Accountant', permissions: ['billing.manage', 'invoices.manage', 'reports.financial'] },
+    { id: 'r_patient', name: 'Patient', permissions: ['patient_portal'] },
   ],
 
   users: [
@@ -22,6 +23,8 @@ export const dbStore = {
     { id: 'u6', username: 'lab.tech', email: 'lab.tech@medicure.org', password: 'scrypt:ac0b6be444ec43f3156e9637bbe564f8:cb6c876a5d170db42b62ce2eea1320a76911a08c1a2e7d5346bde24f88f75aa50877108a2898d154fdc26317a549663956c4ed596c3b365888c3fa7fface97e7', role_id: 'r5', role_name: 'Laboratory Staff', created_at: '2026-01-16T09:00:00Z' },
     { id: 'u7', username: 'pharmacy', email: 'pharmacy@medicure.org', password: 'scrypt:ac0b6be444ec43f3156e9637bbe564f8:cb6c876a5d170db42b62ce2eea1320a76911a08c1a2e7d5346bde24f88f75aa50877108a2898d154fdc26317a549663956c4ed596c3b365888c3fa7fface97e7', role_id: 'r6', role_name: 'Pharmacist', created_at: '2026-01-17T08:15:00Z' },
     { id: 'u8', username: 'billing', email: 'billing@medicure.org', password: 'scrypt:ac0b6be444ec43f3156e9637bbe564f8:cb6c876a5d170db42b62ce2eea1320a76911a08c1a2e7d5346bde24f88f75aa50877108a2898d154fdc26317a549663956c4ed596c3b365888c3fa7fface97e7', role_id: 'r7', role_name: 'Accountant', created_at: '2026-01-18T11:00:00Z' },
+    { id: 'u_pat1', username: 'john.doe', email: 'john.doe@medicure.org', password: 'scrypt:ac0b6be444ec43f3156e9637bbe564f8:cb6c876a5d170db42b62ce2eea1320a76911a08c1a2e7d5346bde24f88f75aa50877108a2898d154fdc26317a549663956c4ed596c3b365888c3fa7fface97e7', role_id: 'r_patient', role_name: 'Patient', patient_id: 'pat1', created_at: '2026-01-20T10:00:00Z' },
+    { id: 'u_pat2', username: 'alice.smith', email: 'alice.smith@medicure.org', password: 'scrypt:ac0b6be444ec43f3156e9637bbe564f8:cb6c876a5d170db42b62ce2eea1320a76911a08c1a2e7d5346bde24f88f75aa50877108a2898d154fdc26317a549663956c4ed596c3b365888c3fa7fface97e7', role_id: 'r_patient', role_name: 'Patient', patient_id: 'pat2', created_at: '2026-01-21T10:00:00Z' },
   ],
 
   departments: [
@@ -53,11 +56,29 @@ export const dbStore = {
       id: 'pat1',
       first_name: 'John',
       last_name: 'Doe',
+      email: 'john.doe@medicure.org',
       dob: '1985-06-14',
       gender: 'Male',
       contact: '+1 (555) 111-2233',
       address: '742 Evergreen Terrace, Springfield',
       medical_history: 'Hypertension, Mild Asthma',
+      vitals: {
+        blood_group: 'A+',
+        height_cm: 178,
+        weight_kg: 74.5,
+        bmi: '23.5',
+        bmi_status: 'Normal',
+        heart_rate: 72,
+        hr_status: 'Normal Sinus',
+        bp_systolic: 128,
+        bp_diastolic: 82,
+        bp_status: 'Controlled',
+        spo2: 97,
+        spo2_status: 'Room Air',
+        temperature: 98.6,
+        temp_status: 'Afebrile',
+        last_updated: '2026-10-04T08:00:00Z'
+      },
       documents: [
         { id: 'doc_1', title: 'Chest X-Ray Digital Scan', category: 'Radiology', uploaded_at: '2026-09-22', url: '#' },
         { id: 'doc_2', title: 'Primary Health Insurance Card', category: 'Insurance', uploaded_at: '2026-09-20', url: '#' }
@@ -67,11 +88,29 @@ export const dbStore = {
       id: 'pat2',
       first_name: 'Alice',
       last_name: 'Smith',
+      email: 'alice.smith@medicure.org',
       dob: '1992-11-03',
       gender: 'Female',
       contact: '+1 (555) 222-3344',
       address: '1088 Ocean Drive, Miami, FL',
       medical_history: 'Type 2 Diabetes, Allergy to Penicillin',
+      vitals: {
+        blood_group: 'O+',
+        height_cm: 165,
+        weight_kg: 58.0,
+        bmi: '21.3',
+        bmi_status: 'Normal',
+        heart_rate: 76,
+        hr_status: 'Normal Sinus',
+        bp_systolic: 118,
+        bp_diastolic: 76,
+        bp_status: 'Optimal',
+        spo2: 99,
+        spo2_status: 'Room Air',
+        temperature: 98.2,
+        temp_status: 'Afebrile',
+        last_updated: '2026-10-04T09:30:00Z'
+      },
       documents: [
         { id: 'doc_3', title: 'Endocrinology Prior Labs', category: 'Lab Report', uploaded_at: '2026-10-01', url: '#' }
       ]
@@ -85,6 +124,23 @@ export const dbStore = {
       contact: '+1 (555) 333-4455',
       address: '42 Wallaby Way, Sydney',
       medical_history: 'Coronary Artery Stent (2023)',
+      vitals: {
+        blood_group: 'O-',
+        height_cm: 182,
+        weight_kg: 85.0,
+        bmi: '25.7',
+        bmi_status: 'Slightly Elevated',
+        heart_rate: 82,
+        hr_status: 'Cardiac Telemetry Monitored',
+        bp_systolic: 135,
+        bp_diastolic: 88,
+        bp_status: 'Stage 1 Elevated',
+        spo2: 96,
+        spo2_status: 'Room Air',
+        temperature: 99.1,
+        temp_status: 'Low Grade Temp',
+        last_updated: '2026-10-03T10:45:00Z'
+      },
       documents: []
     },
     {
@@ -96,6 +152,23 @@ export const dbStore = {
       contact: '+1 (555) 444-5566',
       address: '15 Baker Street, London',
       medical_history: 'Migraine episodes',
+      vitals: {
+        blood_group: 'B+',
+        height_cm: 168,
+        weight_kg: 62.0,
+        bmi: '22.0',
+        bmi_status: 'Normal',
+        heart_rate: 68,
+        hr_status: 'Normal Sinus',
+        bp_systolic: 115,
+        bp_diastolic: 72,
+        bp_status: 'Optimal',
+        spo2: 99,
+        spo2_status: 'Room Air',
+        temperature: 98.4,
+        temp_status: 'Afebrile',
+        last_updated: '2026-10-02T11:00:00Z'
+      },
       documents: []
     },
   ],

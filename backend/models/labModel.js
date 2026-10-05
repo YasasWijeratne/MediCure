@@ -87,5 +87,27 @@ export const labModel = {
     const updated = { ...dbStore.lab_tests[idx], ...updates, id };
     dbStore.lab_tests[idx] = updated;
     return updated;
+  },
+
+  async delete(id) {
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('lab_tests').delete().eq('id', id);
+        if (!error) {
+          const idx = dbStore.lab_tests.findIndex(l => l.id === id);
+          if (idx !== -1) dbStore.lab_tests.splice(idx, 1);
+          return true;
+        }
+      } catch (err) {
+        console.warn('Supabase labModel.delete fallback:', err.message);
+      }
+    }
+
+    const idx = dbStore.lab_tests.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      dbStore.lab_tests.splice(idx, 1);
+      return true;
+    }
+    return false;
   }
 };

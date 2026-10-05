@@ -77,5 +77,23 @@ export const emrController = {
       console.error('emrController.createPrescription error:', err);
       res.status(500).json({ success: false, message: 'Failed to create prescription' });
     }
+  },
+
+  async updateVitals(req, res) {
+    try {
+      const { patient_id } = req.params;
+      const updated = await emrModel.updatePatientVitals(patient_id, req.body);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Patient not found' });
+      }
+      res.json({
+        success: true,
+        message: 'Patient clinical vitals updated successfully',
+        data: updated.vitals
+      });
+    } catch (err) {
+      console.error('emrController.updateVitals error:', err);
+      res.status(500).json({ success: false, message: 'Failed to update vitals' });
+    }
   }
 };

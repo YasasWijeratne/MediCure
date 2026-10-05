@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const patientModel = {
   async getAll(search) {
@@ -12,36 +12,18 @@ export const patientModel = {
         const { data, error } = await query;
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase patientModel.getAll fallback:', err.message);
+        console.warn('Supabase patientModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.patients;
-    if (search) {
-      const q = search.toLowerCase();
-      results = results.filter(p =>
-        `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
-        p.contact.includes(q) ||
-        p.id.toLowerCase().includes(q)
-      );
-    }
-    return results;
+    return [];
   },
 
   async getById(id) {
-    let patient = null;
-    let appointments = [];
-    let prescriptions = [];
-    let labTests = [];
-    let invoices = [];
-    let admissions = [];
-    let documents = [];
-
+    if (!id) return null;
     if (supabase) {
       try {
         const { data: pData, error: pError } = await supabase.from('patients').select('*').eq('id', id).maybeSingle();
         if (!pError && pData) {
-          patient = pData;
           const [appRes, prescRes, labRes, invRes, admRes, docRes] = await Promise.all([
             supabase.from('appointments').select('*').eq('patient_id', id),
             supabase.from('prescriptions').select('*').eq('patient_id', id),
@@ -50,40 +32,22 @@ export const patientModel = {
             supabase.from('admissions').select('*').eq('patient_id', id),
             supabase.from('patient_documents').select('*').eq('patient_id', id)
           ]);
-          appointments = appRes.data || [];
-          prescriptions = prescRes.data || [];
-          labTests = labRes.data || [];
-          invoices = invRes.data || [];
-          admissions = admRes.data || [];
-          documents = docRes.data || [];
 
           return {
-            ...patient,
-            documents,
-            appointments,
-            prescriptions,
-            labTests,
-            invoices,
-            admissions
+            ...pData,
+            documents: docRes.data || [],
+            appointments: appRes.data || [],
+            prescriptions: prescRes.data || [],
+            labTests: labRes.data || [],
+            invoices: invRes.data || [],
+            admissions: admRes.data || []
           };
         }
       } catch (err) {
-        console.warn('Supabase patientModel.getById fallback:', err.message);
+        console.warn('Supabase patientModel.getById error:', err.message);
       }
     }
-
-    patient = dbStore.patients.find(p => p.id === id);
-    if (!patient) return null;
-
-    return {
-      ...patient,
-      documents: patient.documents || [],
-      appointments: dbStore.appointments.filter(a => a.patient_id === id),
-      prescriptions: dbStore.prescriptions.filter(pr => pr.patient_id === id),
-      labTests: dbStore.lab_tests.filter(l => l.patient_id === id),
-      invoices: dbStore.invoices.filter(i => i.patient_id === id),
-      admissions: dbStore.admissions.filter(adm => adm.patient_id === id)
-    };
+    return null;
   },
 
   async create(data) {
@@ -95,34 +59,21 @@ export const patientModel = {
       gender: data.gender || 'Unspecified',
       contact: data.contact,
       address: data.address || '',
-      medical_history: data.medical_history || 'No prior recorded history',
-      documents: [],
-      created_at: new Date().toISOString()
+      medical_history: data.medical_history || 'No prior recorded history'
     };
 
     if (supabase) {
       try {
-        const { data: inserted, error } = await supabase.from('patients').insert([{
-          id: newPatient.id,
-          first_name: newPatient.first_name,
-          last_name: newPatient.last_name,
-          dob: newPatient.dob,
-          gender: newPatient.gender,
-          contact: newPatient.contact,
-          address: newPatient.address,
-          medical_history: newPatient.medical_history
-        }]).select().single();
+        const { data: inserted, error } = await supabase.from('patients').insert([newPatient]).select().single();
         if (!error && inserted) {
-          dbStore.patients.unshift({ ...inserted, documents: [] });
-          return inserted;
+          return { ...inserted, documents: [] };
         }
       } catch (err) {
-        console.warn('Supabase patientModel.create fallback:', err.message);
+        console.warn('Supabase patientModel.create error:', err.message);
       }
     }
 
-    dbStore.patients.unshift(newPatient);
-    return newPatient;
+    return { ...newPatient, documents: [] };
   },
 
   async update(id, updates) {
@@ -134,41 +85,24 @@ export const patientModel = {
           .eq('id', id)
           .select()
           .single();
-        if (!error && data) {
-          const idx = dbStore.patients.findIndex(p => p.id === id);
-          if (idx !== -1) dbStore.patients[idx] = { ...dbStore.patients[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase patientModel.update fallback:', err.message);
+        console.warn('Supabase patientModel.update error:', err.message);
       }
     }
-
-    const idx = dbStore.patients.findIndex(p => p.id === id);
-    if (idx === -1) return null;
-    const updated = { ...dbStore.patients[idx], ...updates, id };
-    dbStore.patients[idx] = updated;
-    return updated;
+    return { ...updates, id };
   },
 
   async delete(id) {
     if (supabase) {
       try {
         const { error } = await supabase.from('patients').delete().eq('id', id);
-        if (!error) {
-          const idx = dbStore.patients.findIndex(p => p.id === id);
-          if (idx !== -1) dbStore.patients.splice(idx, 1);
-          return true;
-        }
+        if (!error) return true;
       } catch (err) {
-        console.warn('Supabase patientModel.delete fallback:', err.message);
+        console.warn('Supabase patientModel.delete error:', err.message);
       }
     }
-
-    const idx = dbStore.patients.findIndex(p => p.id === id);
-    if (idx === -1) return false;
-    dbStore.patients.splice(idx, 1);
-    return true;
+    return false;
   },
 
   async addDocument(patientId, docData) {
@@ -184,23 +118,10 @@ export const patientModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('patient_documents').insert([newDoc]).select().single();
-        if (!error && data) {
-          const patient = dbStore.patients.find(p => p.id === patientId);
-          if (patient) {
-            if (!patient.documents) patient.documents = [];
-            patient.documents.unshift(data);
-          }
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase patientModel.addDocument fallback:', err.message);
+        console.warn('Supabase patientModel.addDocument error:', err.message);
       }
-    }
-
-    const patient = dbStore.patients.find(p => p.id === patientId);
-    if (patient) {
-      if (!patient.documents) patient.documents = [];
-      patient.documents.unshift(newDoc);
     }
     return newDoc;
   }

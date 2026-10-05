@@ -1,7 +1,7 @@
 import { labModel } from '../models/labModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { billingModel } from '../models/billingModel.js';
-import { generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const labController = {
   async getAll(req, res) {

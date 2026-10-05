@@ -3,7 +3,7 @@ import { patientModel } from '../models/patientModel.js';
 import { doctorModel } from '../models/doctorModel.js';
 import { appointmentModel } from '../models/appointmentModel.js';
 import { pharmacyModel } from '../models/pharmacyModel.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const emrController = {
   async getPrescriptions(req, res) {
@@ -42,11 +42,10 @@ export const emrController = {
       const doctor = await doctorModel.getById(doctor_id);
 
       const formattedItems = (items || []).map(item => {
-        const med = dbStore.medicines.find(m => m.id === item.medicine_id);
         return {
           id: generateId('rxi'),
           medicine_id: item.medicine_id || 'med1',
-          medicine_name: med ? med.name : (item.medicine_name || 'Generic Medicine'),
+          medicine_name: item.medicine_name || 'Generic Medicine',
           dosage: item.dosage || '1 tablet',
           frequency: item.frequency || 'Twice daily'
         };

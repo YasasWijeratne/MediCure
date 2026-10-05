@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const appointmentModel = {
   async getAll(filters = {}) {
@@ -13,17 +13,12 @@ export const appointmentModel = {
         if (patient_id) query = query.eq('patient_id', patient_id);
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase appointmentModel.getAll fallback:', err.message);
+        console.warn('Supabase appointmentModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.appointments;
-    if (status) results = results.filter(a => a.status.toLowerCase() === status.toLowerCase());
-    if (doctor_id) results = results.filter(a => a.doctor_id === doctor_id);
-    if (patient_id) results = results.filter(a => a.patient_id === patient_id);
-    return results;
+    return [];
   },
 
   async getById(id) {
@@ -32,10 +27,10 @@ export const appointmentModel = {
         const { data, error } = await supabase.from('appointments').select('*').eq('id', id).maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase appointmentModel.getById fallback:', err.message);
+        console.warn('Supabase appointmentModel.getById error:', err.message);
       }
     }
-    return dbStore.appointments.find(a => a.id === id) || null;
+    return null;
   },
 
   async create(appointmentData) {
@@ -53,16 +48,12 @@ export const appointmentModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('appointments').insert([newAppointment]).select().single();
-        if (!error && data) {
-          dbStore.appointments.unshift(data);
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase appointmentModel.create fallback:', err.message);
+        console.warn('Supabase appointmentModel.create error:', err.message);
       }
     }
 
-    dbStore.appointments.unshift(newAppointment);
     return newAppointment;
   },
 
@@ -70,21 +61,12 @@ export const appointmentModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('appointments').update(updates).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.appointments.findIndex(a => a.id === id);
-          if (idx !== -1) dbStore.appointments[idx] = { ...dbStore.appointments[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase appointmentModel.update fallback:', err.message);
+        console.warn('Supabase appointmentModel.update error:', err.message);
       }
     }
-
-    const idx = dbStore.appointments.findIndex(a => a.id === id);
-    if (idx === -1) return null;
-    const updated = { ...dbStore.appointments[idx], ...updates, id };
-    dbStore.appointments[idx] = updated;
-    return updated;
+    return { ...updates, id };
   },
 
   async cancel(id) {

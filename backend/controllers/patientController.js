@@ -1,5 +1,5 @@
 import { patientModel } from '../models/patientModel.js';
-import { logAuditEvent } from '../db/store.js';
+import { logAuditEvent } from '../utils/helpers.js';
 
 export const patientController = {
   async getAll(req, res) {

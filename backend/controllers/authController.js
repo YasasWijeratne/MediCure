@@ -1,6 +1,6 @@
 import { userModel } from '../models/userModel.js';
 import { patientModel } from '../models/patientModel.js';
-import { logAuditEvent } from '../db/store.js';
+import { logAuditEvent } from '../utils/helpers.js';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 

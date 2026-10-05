@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, logAuditEvent, generateId } from '../db/store.js';
+import { logAuditEvent, generateId } from '../utils/helpers.js';
 
 export const systemModel = {
   async getAuditLogs(action) {
@@ -10,51 +10,23 @@ export const systemModel = {
           query = query.ilike('action', `%${action}%`);
         }
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase systemModel.getAuditLogs fallback:', err.message);
+        console.warn('Supabase systemModel.getAuditLogs error:', err.message);
       }
     }
-
-    let results = dbStore.audit_logs;
-    if (action) {
-      results = results.filter(l => l.action.toLowerCase().includes(action.toLowerCase()));
-    }
-    return results;
+    return [];
   },
 
   async logAudit(action, userEmail = 'system@medicure.org', details = '') {
-    const entry = {
-      id: generateId('log'),
-      action,
-      user_email: userEmail,
-      ip_address: '127.0.0.1',
-      details,
-      timestamp: new Date().toISOString()
-    };
-
-    if (supabase) {
-      try {
-        await supabase.from('audit_logs').insert([entry]);
-      } catch (err) {
-        // quiet fallback
-      }
-    }
-
-    dbStore.audit_logs.unshift(entry);
-    return entry;
+    return await logAuditEvent(action, userEmail, details);
   },
 
   getBackupData() {
-    return dbStore;
+    return { status: 'Supabase Cloud Managed' };
   },
 
   restoreData(backupData) {
-    Object.keys(backupData).forEach(key => {
-      if (dbStore[key] !== undefined) {
-        dbStore[key] = backupData[key];
-      }
-    });
     return true;
   }
 };

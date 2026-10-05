@@ -2,7 +2,7 @@ import { appointmentModel } from '../models/appointmentModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { doctorModel } from '../models/doctorModel.js';
 import { billingModel } from '../models/billingModel.js';
-import { generateId, logAuditEvent } from '../db/store.js';
+import { generateId, logAuditEvent } from '../utils/helpers.js';
 
 export const appointmentController = {
   async getAll(req, res) {

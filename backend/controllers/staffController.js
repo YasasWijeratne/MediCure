@@ -1,6 +1,6 @@
 import { staffModel } from '../models/staffModel.js';
 import { doctorModel } from '../models/doctorModel.js';
-import { logAuditEvent } from '../db/store.js';
+import { logAuditEvent } from '../utils/helpers.js';
 
 export const staffController = {
   async getEmployees(req, res) {

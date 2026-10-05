@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const doctorModel = {
   async getAll(departmentId) {
@@ -10,29 +10,24 @@ export const doctorModel = {
           query = query.eq('department_id', departmentId);
         }
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase doctorModel.getAll fallback:', err.message);
+        console.warn('Supabase doctorModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.doctors;
-    if (departmentId) {
-      results = results.filter(d => d.department_id === departmentId);
-    }
-    return results;
+    return [];
   },
 
   async getDepartments() {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('departments').select('*');
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase doctorModel.getDepartments fallback:', err.message);
+        console.warn('Supabase doctorModel.getDepartments error:', err.message);
       }
     }
-    return dbStore.departments;
+    return [];
   },
 
   async getById(id) {
@@ -41,10 +36,10 @@ export const doctorModel = {
         const { data, error } = await supabase.from('doctors').select('*').eq('id', id).maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase doctorModel.getById fallback:', err.message);
+        console.warn('Supabase doctorModel.getById error:', err.message);
       }
     }
-    return dbStore.doctors.find(d => d.id === id) || null;
+    return null;
   },
 
   async create(data) {
@@ -66,16 +61,12 @@ export const doctorModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('doctors').insert([newDoctor]).select().single();
-        if (!error && inserted) {
-          dbStore.doctors.push(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase doctorModel.create fallback:', err.message);
+        console.warn('Supabase doctorModel.create error:', err.message);
       }
     }
 
-    dbStore.doctors.push(newDoctor);
     return newDoctor;
   },
 
@@ -83,20 +74,11 @@ export const doctorModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('doctors').update(updates).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.doctors.findIndex(d => d.id === id);
-          if (idx !== -1) dbStore.doctors[idx] = { ...dbStore.doctors[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase doctorModel.update fallback:', err.message);
+        console.warn('Supabase doctorModel.update error:', err.message);
       }
     }
-
-    const idx = dbStore.doctors.findIndex(d => d.id === id);
-    if (idx === -1) return null;
-    const updated = { ...dbStore.doctors[idx], ...updates, id };
-    dbStore.doctors[idx] = updated;
-    return updated;
+    return { ...updates, id };
   }
 };

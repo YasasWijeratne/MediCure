@@ -1,5 +1,5 @@
 import { systemModel } from '../models/systemModel.js';
-import { logAuditEvent } from '../db/store.js';
+import { logAuditEvent } from '../utils/helpers.js';
 
 export const systemController = {
   async getAuditLogs(req, res) {

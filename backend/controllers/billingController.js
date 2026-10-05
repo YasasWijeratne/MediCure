@@ -1,6 +1,6 @@
 import { billingModel } from '../models/billingModel.js';
 import { patientModel } from '../models/patientModel.js';
-import { generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const billingController = {
   async getInvoices(req, res) {

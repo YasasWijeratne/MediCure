@@ -1,7 +1,7 @@
 import { pharmacyModel } from '../models/pharmacyModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { billingModel } from '../models/billingModel.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const pharmacyController = {
   async getAll(req, res) {

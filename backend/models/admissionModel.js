@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const admissionModel = {
   async getAll(filters = {}) {
@@ -12,16 +12,12 @@ export const admissionModel = {
         if (patient_id) query = query.eq('patient_id', patient_id);
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase admissionModel.getAll fallback:', err.message);
+        console.warn('Supabase admissionModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.admissions;
-    if (status) results = results.filter(a => a.status.toLowerCase() === status.toLowerCase());
-    if (patient_id) results = results.filter(a => a.patient_id === patient_id);
-    return results;
+    return [];
   },
 
   async getById(id) {
@@ -30,10 +26,10 @@ export const admissionModel = {
         const { data, error } = await supabase.from('admissions').select('*').eq('id', id).maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase admissionModel.getById fallback:', err.message);
+        console.warn('Supabase admissionModel.getById error:', err.message);
       }
     }
-    return dbStore.admissions.find(a => a.id === id) || null;
+    return null;
   },
 
   async create(data) {
@@ -55,16 +51,12 @@ export const admissionModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('admissions').insert([newAdmission]).select().single();
-        if (!error && inserted) {
-          dbStore.admissions.unshift(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase admissionModel.create fallback:', err.message);
+        console.warn('Supabase admissionModel.create error:', err.message);
       }
     }
 
-    dbStore.admissions.unshift(newAdmission);
     return newAdmission;
   },
 
@@ -78,19 +70,12 @@ export const admissionModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('admissions').update(updates).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.admissions.findIndex(a => a.id === id);
-          if (idx !== -1) dbStore.admissions[idx] = { ...dbStore.admissions[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase admissionModel.discharge fallback:', err.message);
+        console.warn('Supabase admissionModel.discharge error:', err.message);
       }
     }
 
-    const idx = dbStore.admissions.findIndex(a => a.id === id);
-    if (idx === -1) return null;
-    dbStore.admissions[idx] = { ...dbStore.admissions[idx], ...updates };
-    return dbStore.admissions[idx];
+    return { id, ...updates };
   }
 };

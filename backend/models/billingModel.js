@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const billingModel = {
   async getAll(filters = {}) {
@@ -12,16 +12,12 @@ export const billingModel = {
         if (patient_id) query = query.eq('patient_id', patient_id);
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase billingModel.getAll fallback:', err.message);
+        console.warn('Supabase billingModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.invoices;
-    if (status) results = results.filter(i => i.status.toLowerCase() === status.toLowerCase());
-    if (patient_id) results = results.filter(i => i.patient_id === patient_id);
-    return results;
+    return [];
   },
 
   async getById(id) {
@@ -34,10 +30,10 @@ export const billingModel = {
           .maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase billingModel.getById fallback:', err.message);
+        console.warn('Supabase billingModel.getById error:', err.message);
       }
     }
-    return dbStore.invoices.find(i => i.id === id) || null;
+    return null;
   },
 
   async create(invoiceData) {
@@ -71,15 +67,13 @@ export const billingModel = {
             amount: it.amount
           }));
           await supabase.from('invoice_items').insert(itemsToInsert);
-          dbStore.invoices.unshift(newInvoice);
           return newInvoice;
         }
       } catch (err) {
-        console.warn('Supabase billingModel.create fallback:', err.message);
+        console.warn('Supabase billingModel.create error:', err.message);
       }
     }
 
-    dbStore.invoices.unshift(newInvoice);
     return newInvoice;
   },
 
@@ -100,7 +94,7 @@ export const billingModel = {
       try {
         await supabase.from('payments').insert([newPayment]);
       } catch (err) {
-        console.warn('Supabase billingModel.recordPayment fallback:', err.message);
+        console.warn('Supabase billingModel.recordPayment error:', err.message);
       }
     }
 
@@ -121,17 +115,8 @@ export const billingModel = {
       try {
         await supabase.from('invoices').update({ status: newStatus }).eq('id', invoiceId);
       } catch (err) {
-        console.warn('Supabase update invoice status fallback:', err.message);
+        console.warn('Supabase update invoice status error:', err.message);
       }
-    }
-
-    const localInv = dbStore.invoices.find(i => i.id === invoiceId);
-    if (localInv) {
-      if (!localInv.payments) localInv.payments = [];
-      if (!localInv.payments.some(p => p.id === newPayment.id)) {
-        localInv.payments.push(newPayment);
-      }
-      localInv.status = newStatus;
     }
 
     return invoice;

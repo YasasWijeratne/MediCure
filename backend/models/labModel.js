@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const labModel = {
   async getAll(filters = {}) {
@@ -12,20 +12,12 @@ export const labModel = {
         if (patient_id) query = query.eq('patient_id', patient_id);
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase labModel.getAll fallback:', err.message);
+        console.warn('Supabase labModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.lab_tests;
-    if (sample_status) {
-      results = results.filter(l => l.sample_status.toLowerCase() === sample_status.toLowerCase());
-    }
-    if (patient_id) {
-      results = results.filter(l => l.patient_id === patient_id);
-    }
-    return results;
+    return [];
   },
 
   async getById(id) {
@@ -34,10 +26,10 @@ export const labModel = {
         const { data, error } = await supabase.from('lab_tests').select('*').eq('id', id).maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase labModel.getById fallback:', err.message);
+        console.warn('Supabase labModel.getById error:', err.message);
       }
     }
-    return dbStore.lab_tests.find(l => l.id === id) || null;
+    return null;
   },
 
   async create(data) {
@@ -55,16 +47,11 @@ export const labModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('lab_tests').insert([newTest]).select().single();
-        if (!error && inserted) {
-          dbStore.lab_tests.unshift(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase labModel.create fallback:', err.message);
+        console.warn('Supabase labModel.create error:', err.message);
       }
     }
-
-    dbStore.lab_tests.unshift(newTest);
     return newTest;
   },
 
@@ -72,41 +59,22 @@ export const labModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('lab_tests').update(updates).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.lab_tests.findIndex(l => l.id === id);
-          if (idx !== -1) dbStore.lab_tests[idx] = { ...dbStore.lab_tests[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase labModel.update fallback:', err.message);
+        console.warn('Supabase labModel.update error:', err.message);
       }
     }
-
-    const idx = dbStore.lab_tests.findIndex(l => l.id === id);
-    if (idx === -1) return null;
-    const updated = { ...dbStore.lab_tests[idx], ...updates, id };
-    dbStore.lab_tests[idx] = updated;
-    return updated;
+    return { ...updates, id };
   },
 
   async delete(id) {
     if (supabase) {
       try {
         const { error } = await supabase.from('lab_tests').delete().eq('id', id);
-        if (!error) {
-          const idx = dbStore.lab_tests.findIndex(l => l.id === id);
-          if (idx !== -1) dbStore.lab_tests.splice(idx, 1);
-          return true;
-        }
+        if (!error) return true;
       } catch (err) {
-        console.warn('Supabase labModel.delete fallback:', err.message);
+        console.warn('Supabase labModel.delete error:', err.message);
       }
-    }
-
-    const idx = dbStore.lab_tests.findIndex(l => l.id === id);
-    if (idx !== -1) {
-      dbStore.lab_tests.splice(idx, 1);
-      return true;
     }
     return false;
   }

@@ -1,5 +1,16 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
+
+const DEFAULT_ROLES = [
+  { id: 'r1', name: 'Administrator', permissions: ['all'] },
+  { id: 'r2', name: 'Doctor', permissions: ['patients.view', 'appointments.manage', 'emr.manage', 'prescriptions.manage', 'lab.view', 'admissions.view'] },
+  { id: 'r3', name: 'Nurse', permissions: ['patients.view', 'appointments.view', 'admissions.manage', 'emr.view'] },
+  { id: 'r4', name: 'Receptionist', permissions: ['patients.manage', 'appointments.manage', 'invoices.view', 'admissions.manage'] },
+  { id: 'r5', name: 'Laboratory Staff', permissions: ['lab.manage', 'patients.view'] },
+  { id: 'r6', name: 'Pharmacist', permissions: ['pharmacy.manage', 'prescriptions.view'] },
+  { id: 'r7', name: 'Accountant', permissions: ['billing.manage', 'invoices.manage', 'reports.financial'] },
+  { id: 'r_patient', name: 'Patient', permissions: ['patient_portal'] }
+];
 
 export const userModel = {
   async findByUsernameOrEmail(identifier) {
@@ -15,14 +26,10 @@ export const userModel = {
           .maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase query error in userModel.findByUsernameOrEmail, falling back to local store:', err.message);
+        console.warn('Supabase query error in userModel.findByUsernameOrEmail:', err.message);
       }
     }
-
-    return dbStore.users.find(u =>
-      (u.username && u.username.toLowerCase() === lower) ||
-      (u.email && u.email.toLowerCase() === lower)
-    ) || null;
+    return null;
   },
 
   async findById(id) {
@@ -36,10 +43,10 @@ export const userModel = {
           .maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase userModel.findById fallback:', err.message);
+        console.warn('Supabase userModel.findById error:', err.message);
       }
     }
-    return dbStore.users.find(u => u.id === id) || null;
+    return null;
   },
 
   async create(userData) {
@@ -61,15 +68,13 @@ export const userModel = {
           .select()
           .single();
         if (!error && data) {
-          dbStore.users.push(data);
           return data;
         }
       } catch (err) {
-        console.warn('Supabase userModel.create fallback:', err.message);
+        console.warn('Supabase userModel.create error:', err.message);
       }
     }
 
-    dbStore.users.push(newUser);
     return newUser;
   },
 
@@ -81,18 +86,10 @@ export const userModel = {
           .select('id, username, email, role_name, role_id, created_at');
         if (!error && data && data.length > 0) return data;
       } catch (err) {
-        console.warn('Supabase userModel.getAll fallback:', err.message);
+        console.warn('Supabase userModel.getAll error:', err.message);
       }
     }
-
-    return dbStore.users.map(u => ({
-      id: u.id,
-      username: u.username,
-      email: u.email,
-      role_name: u.role_name,
-      role_id: u.role_id,
-      created_at: u.created_at
-    }));
+    return [];
   },
 
   async updatePassword(idOrEmail, newPassword) {
@@ -103,19 +100,11 @@ export const userModel = {
           .or(`id.eq.${idOrEmail},email.eq.${idOrEmail}`)
           .select();
         if (!error && data) {
-          const user = dbStore.users.find(u => u.id === idOrEmail || u.email === idOrEmail);
-          if (user) user.password = newPassword;
           return true;
         }
       } catch (err) {
-        console.warn('Supabase userModel.updatePassword fallback:', err.message);
+        console.warn('Supabase userModel.updatePassword error:', err.message);
       }
-    }
-
-    const user = dbStore.users.find(u => u.id === idOrEmail || u.email === idOrEmail);
-    if (user) {
-      user.password = newPassword;
-      return true;
     }
     return false;
   },
@@ -126,9 +115,9 @@ export const userModel = {
         const { data, error } = await supabase.from('roles').select('*');
         if (!error && data && data.length > 0) return data;
       } catch (err) {
-        console.warn('Supabase userModel.getRoles fallback:', err.message);
+        console.warn('Supabase userModel.getRoles error:', err.message);
       }
     }
-    return dbStore.roles;
+    return DEFAULT_ROLES;
   }
 };

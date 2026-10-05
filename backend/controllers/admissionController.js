@@ -1,7 +1,7 @@
 import { admissionModel } from '../models/admissionModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { billingModel } from '../models/billingModel.js';
-import { dbStore, generateId, logAuditEvent } from '../db/store.js';
+import { generateId, logAuditEvent } from '../utils/helpers.js';
 
 export const admissionController = {
   async getAll(req, res) {

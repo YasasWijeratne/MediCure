@@ -1,17 +1,17 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const staffModel = {
   async getEmployees() {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('employees').select('*');
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase staffModel.getEmployees fallback:', err.message);
+        console.warn('Supabase staffModel.getEmployees error:', err.message);
       }
     }
-    return dbStore.employees;
+    return [];
   },
 
   async createEmployee(data) {
@@ -28,16 +28,11 @@ export const staffModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('employees').insert([newEmployee]).select().single();
-        if (!error && inserted) {
-          dbStore.employees.push(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase staffModel.createEmployee fallback:', err.message);
+        console.warn('Supabase staffModel.createEmployee error:', err.message);
       }
     }
-
-    dbStore.employees.push(newEmployee);
     return newEmployee;
   },
 
@@ -45,34 +40,53 @@ export const staffModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('attendance').select('*').order('date', { ascending: false });
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase staffModel.getAttendance fallback:', err.message);
+        console.warn('Supabase staffModel.getAttendance error:', err.message);
       }
     }
-    return dbStore.attendance;
+    return [];
   },
 
   async recordAttendance(emp, status) {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    let existing = dbStore.attendance.find(a => a.employee_id === emp.id && a.date === today);
+    if (supabase) {
+      try {
+        const { data: existing } = await supabase.from('attendance')
+          .select('*')
+          .eq('employee_id', emp.id)
+          .eq('date', today)
+          .maybeSingle();
 
-    if (existing) {
-      existing.status = status || existing.status;
-      existing.check_out = nowTime;
-      if (supabase) {
-        try {
-          await supabase.from('attendance').update({ status: existing.status, check_out: nowTime }).eq('id', existing.id);
-        } catch (err) {
-          console.warn('Supabase attendance update fallback:', err.message);
+        if (existing) {
+          const { data: updated } = await supabase.from('attendance')
+            .update({ status: status || existing.status, check_out: nowTime })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          return updated || existing;
         }
+
+        const record = {
+          id: generateId('att'),
+          employee_id: emp.id,
+          employee_name: emp.name,
+          date: today,
+          status: status || 'Present',
+          check_in: nowTime,
+          check_out: '-'
+        };
+
+        const { data: inserted } = await supabase.from('attendance').insert([record]).select().single();
+        return inserted || record;
+      } catch (err) {
+        console.warn('Supabase recordAttendance error:', err.message);
       }
-      return existing;
     }
 
-    const record = {
+    return {
       id: generateId('att'),
       employee_id: emp.id,
       employee_name: emp.name,
@@ -81,33 +95,18 @@ export const staffModel = {
       check_in: nowTime,
       check_out: '-'
     };
-
-    if (supabase) {
-      try {
-        const { data: inserted, error } = await supabase.from('attendance').insert([record]).select().single();
-        if (!error && inserted) {
-          dbStore.attendance.unshift(inserted);
-          return inserted;
-        }
-      } catch (err) {
-        console.warn('Supabase recordAttendance fallback:', err.message);
-      }
-    }
-
-    dbStore.attendance.unshift(record);
-    return record;
   },
 
   async getLeaves() {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('staff_leaves').select('*').order('applied_at', { ascending: false });
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase staffModel.getLeaves fallback:', err.message);
+        console.warn('Supabase staffModel.getLeaves error:', err.message);
       }
     }
-    return dbStore.staff_leaves;
+    return [];
   },
 
   async applyLeave(data) {
@@ -127,16 +126,11 @@ export const staffModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('staff_leaves').insert([newLeave]).select().single();
-        if (!error && inserted) {
-          dbStore.staff_leaves.unshift(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase applyLeave fallback:', err.message);
+        console.warn('Supabase applyLeave error:', err.message);
       }
     }
-
-    dbStore.staff_leaves.unshift(newLeave);
     return newLeave;
   },
 
@@ -144,19 +138,23 @@ export const staffModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('staff_leaves').update({ status }).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.staff_leaves.findIndex(l => l.id === id);
-          if (idx !== -1) dbStore.staff_leaves[idx] = data;
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase updateLeaveStatus fallback:', err.message);
+        console.warn('Supabase updateLeaveStatus error:', err.message);
       }
     }
+    return { id, status };
+  },
 
-    const leave = dbStore.staff_leaves.find(l => l.id === id);
-    if (!leave) return null;
-    leave.status = status;
-    return leave;
+  async getDepartments() {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('departments').select('*');
+        if (!error && data) return data;
+      } catch (err) {
+        console.warn('Supabase staffModel.getDepartments error:', err.message);
+      }
+    }
+    return [];
   }
 };

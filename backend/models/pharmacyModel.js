@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { dbStore, generateId } from '../db/store.js';
+import { generateId } from '../utils/helpers.js';
 
 export const pharmacyModel = {
   async getAll(filters = {}) {
@@ -15,21 +15,12 @@ export const pharmacyModel = {
           query = query.lte('stock_qty', 50);
         }
         const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase pharmacyModel.getAll fallback:', err.message);
+        console.warn('Supabase pharmacyModel.getAll error:', err.message);
       }
     }
-
-    let results = dbStore.medicines;
-    if (search) {
-      const q = search.toLowerCase();
-      results = results.filter(m => m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q));
-    }
-    if (low_stock === 'true') {
-      results = results.filter(m => m.stock_qty <= 50);
-    }
-    return results;
+    return [];
   },
 
   async getById(id) {
@@ -38,10 +29,10 @@ export const pharmacyModel = {
         const { data, error } = await supabase.from('medicines').select('*').eq('id', id).maybeSingle();
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase pharmacyModel.getById fallback:', err.message);
+        console.warn('Supabase pharmacyModel.getById error:', err.message);
       }
     }
-    return dbStore.medicines.find(m => m.id === id) || null;
+    return null;
   },
 
   async create(data) {
@@ -58,16 +49,11 @@ export const pharmacyModel = {
     if (supabase) {
       try {
         const { data: inserted, error } = await supabase.from('medicines').insert([newMedicine]).select().single();
-        if (!error && inserted) {
-          dbStore.medicines.unshift(inserted);
-          return inserted;
-        }
+        if (!error && inserted) return inserted;
       } catch (err) {
-        console.warn('Supabase pharmacyModel.create fallback:', err.message);
+        console.warn('Supabase pharmacyModel.create error:', err.message);
       }
     }
-
-    dbStore.medicines.unshift(newMedicine);
     return newMedicine;
   },
 
@@ -75,21 +61,12 @@ export const pharmacyModel = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('medicines').update(updates).eq('id', id).select().single();
-        if (!error && data) {
-          const idx = dbStore.medicines.findIndex(m => m.id === id);
-          if (idx !== -1) dbStore.medicines[idx] = { ...dbStore.medicines[idx], ...data };
-          return data;
-        }
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase pharmacyModel.update fallback:', err.message);
+        console.warn('Supabase pharmacyModel.update error:', err.message);
       }
     }
-
-    const idx = dbStore.medicines.findIndex(m => m.id === id);
-    if (idx === -1) return null;
-    const updated = { ...dbStore.medicines[idx], ...updates, id };
-    dbStore.medicines[idx] = updated;
-    return updated;
+    return { ...updates, id };
   },
 
   async dispense(patientId, items) {

@@ -153,7 +153,7 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
                   required
                   value={loginEmail}
                   onChange={e => setLoginEmail(e.target.value)}
-                  placeholder="e.g. john.doe@medicure.org"
+                  placeholder="Email"
                   autoComplete="email"
                 />
               </div>

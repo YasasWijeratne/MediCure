@@ -79,7 +79,7 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPat
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="e.g. dr.sarah@medicure.org"
+                placeholder="Email"
                 autoComplete="email"
               />
             </div>

@@ -79,7 +79,7 @@ export default function AdminLoginPage({ onBackToLanding, onGoToStaffLogin }) {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="e.g. admin@medicure.org"
+                placeholder="Email"
                 autoComplete="email"
               />
             </div>

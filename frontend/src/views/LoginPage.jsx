@@ -112,32 +112,6 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPat
           </button>
         </form>
 
-        {/* Quick Demo Staff Login Chips */}
-        <div className="mt-6 pt-4 border-t border-surface-container">
-          <span className="text-[11px] text-outline font-semibold uppercase tracking-wider block mb-2 text-center">
-            Quick Fill Demo Staff Credentials
-          </span>
-          <div className="flex flex-wrap gap-1.5 justify-center">
-            {[
-              { label: 'Doctor', email: 'dr.sarah@medicure.org' },
-              { label: 'Nurse', email: 'nurse.elena@medicure.org' },
-              { label: 'Reception', email: 'reception@medicure.org' },
-              { label: 'Lab Tech', email: 'lab.tech@medicure.org' },
-              { label: 'Pharmacy', email: 'pharmacy@medicure.org' },
-              { label: 'Billing', email: 'billing@medicure.org' },
-            ].map(item => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => setDemoStaff(item.email)}
-                className="px-2.5 py-1 rounded-md bg-surface-container-low hover:bg-primary-container text-on-surface hover:text-on-primary-container text-xs transition-all border border-surface-container cursor-pointer font-medium"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Navigation options */}
         <div className="mt-6 pt-4 border-t border-surface-container flex flex-col gap-2 text-center">
           {onGoToPatientLogin && (

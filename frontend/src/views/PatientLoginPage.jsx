@@ -185,28 +185,6 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
               {loading ? 'Authenticating...' : 'Sign In to Patient Portal'} <ArrowRight size={16} />
             </button>
 
-            {/* Quick Demo Credentials */}
-            <div className="mt-5 pt-4 border-t border-surface-container text-center">
-              <span className="text-[11px] text-outline font-semibold uppercase tracking-wider block mb-2">
-                Quick Demo Patient Accounts
-              </span>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setDemoPatient('john.doe@medicure.org')}
-                  className="px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-primary-container text-on-surface hover:text-on-primary-container text-xs transition-all border border-surface-container font-medium cursor-pointer"
-                >
-                  John Doe (Cardiology Patient)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDemoPatient('alice.smith@medicure.org')}
-                  className="px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-primary-container text-on-surface hover:text-on-primary-container text-xs transition-all border border-surface-container font-medium cursor-pointer"
-                >
-                  Alice Smith (Endocrinology)
-                </button>
-              </div>
-            </div>
           </form>
         )}
 

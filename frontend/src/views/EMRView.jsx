@@ -13,6 +13,21 @@ export default function EMRView() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
+  const [vitalsForm, setVitalsForm] = useState({
+    blood_group: 'O+',
+    height_cm: 170,
+    weight_kg: 70,
+    heart_rate: 74,
+    hr_status: 'Normal Sinus',
+    bp_systolic: 120,
+    bp_diastolic: 80,
+    bp_status: 'Controlled',
+    spo2: 98,
+    spo2_status: 'Room Air',
+    temperature: 98.4,
+    temp_status: 'Afebrile'
+  });
 
   const [formData, setFormData] = useState({
     patient_id: '',
@@ -133,10 +148,41 @@ export default function EMRView() {
           items: [{ medicine_id: medicines[0]?.id || '', dosage: '1 tablet', frequency: 'Twice daily' }]
         });
         fetchData();
-        if (formData.patient_id === selectedPatientId) {
-          const dosRes = await api.get(`/emr/patient/${selectedPatientId}`);
-          if (dosRes.success) setPatientDossier(dosRes.data);
-        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const openVitalsModal = () => {
+    if (!activePatient) return;
+    const v = activePatient.vitals || {};
+    setVitalsForm({
+      blood_group: v.blood_group || 'O+',
+      height_cm: v.height_cm || 170,
+      weight_kg: v.weight_kg || 70,
+      heart_rate: v.heart_rate || 74,
+      hr_status: v.hr_status || 'Normal Sinus',
+      bp_systolic: v.bp_systolic || 120,
+      bp_diastolic: v.bp_diastolic || 80,
+      bp_status: v.bp_status || 'Controlled',
+      spo2: v.spo2 || 98,
+      spo2_status: v.spo2_status || 'Room Air',
+      temperature: v.temperature || 98.4,
+      temp_status: v.temp_status || 'Afebrile'
+    });
+    setIsVitalsModalOpen(true);
+  };
+
+  const handleVitalsSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedPatientId) return;
+    try {
+      const res = await api.put(`/emr/patient/${selectedPatientId}/vitals`, vitalsForm);
+      if (res.success) {
+        setIsVitalsModalOpen(false);
+        const dosRes = await api.get(`/emr/patient/${selectedPatientId}`);
+        if (dosRes.success) setPatientDossier(dosRes.data);
       }
     } catch (err) {
       alert(err.message);
@@ -402,7 +448,7 @@ export default function EMRView() {
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-md bg-secondary-container text-on-secondary-container font-label-sm text-xs font-bold">
-                    Blood: O+
+                    Blood: {activePatient.vitals?.blood_group || activePatient.blood_group || 'O+'}
                   </span>
                 </div>
 
@@ -410,15 +456,15 @@ export default function EMRView() {
                 <div className="grid grid-cols-3 gap-2 py-1 bg-surface-container-low rounded-lg p-2.5 text-center text-xs">
                   <div>
                     <span className="block text-[10px] text-outline uppercase font-semibold">Height</span>
-                    <span className="font-bold text-on-surface">172 cm</span>
+                    <span className="font-bold text-on-surface">{activePatient.vitals?.height_cm || 172} cm</span>
                   </div>
                   <div className="border-x border-surface-container-high">
                     <span className="block text-[10px] text-outline uppercase font-semibold">Weight</span>
-                    <span className="font-bold text-on-surface">68.5 kg</span>
+                    <span className="font-bold text-on-surface">{activePatient.vitals?.weight_kg || 68.5} kg</span>
                   </div>
                   <div>
                     <span className="block text-[10px] text-outline uppercase font-semibold">BMI</span>
-                    <span className="font-bold text-secondary">23.2 (Norm)</span>
+                    <span className="font-bold text-secondary">{activePatient.vitals?.bmi || '23.2'} ({activePatient.vitals?.bmi_status || 'Norm'})</span>
                   </div>
                 </div>
 
@@ -454,9 +500,19 @@ export default function EMRView() {
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary mr-1"></span> Recording
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={openVitalsModal}
+                      className="px-2.5 py-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary font-semibold rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                      title="Update Vitals & Telemetry"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">edit</span>
+                      <span>Update Vitals</span>
+                    </button>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary mr-1"></span> Recording
+                    </span>
+                  </div>
                 </div>
 
                 {/* 4 Telemetry Metrics */}
@@ -464,44 +520,44 @@ export default function EMRView() {
                   <div className="p-3 bg-surface-container-low rounded-lg space-y-0.5">
                     <span className="font-label-sm text-[10px] text-outline uppercase font-semibold">Heart Rate</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="font-headline-lg text-xl font-bold text-on-surface">74</span>
+                      <span className="font-headline-lg text-xl font-bold text-on-surface">{activePatient.vitals?.heart_rate || 74}</span>
                       <span className="font-label-sm text-[10px] text-outline">bpm</span>
                     </div>
                     <span className="font-label-sm text-[11px] text-secondary font-medium flex items-center">
-                      <span className="material-symbols-outlined text-[13px] mr-0.5">check_circle</span> Normal Sinus
+                      <span className="material-symbols-outlined text-[13px] mr-0.5">check_circle</span> {activePatient.vitals?.hr_status || 'Normal Sinus'}
                     </span>
                   </div>
 
                   <div className="p-3 bg-surface-container-low rounded-lg space-y-0.5">
                     <span className="font-label-sm text-[10px] text-outline uppercase font-semibold">Blood Pressure</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="font-headline-lg text-xl font-bold text-on-surface">124/82</span>
+                      <span className="font-headline-lg text-xl font-bold text-on-surface">{activePatient.vitals?.bp_systolic || 124}/{activePatient.vitals?.bp_diastolic || 82}</span>
                       <span className="font-label-sm text-[10px] text-outline">mmHg</span>
                     </div>
                     <span className="font-label-sm text-[11px] text-primary font-medium flex items-center">
-                      <span className="material-symbols-outlined text-[13px] mr-0.5">trending_flat</span> Controlled
+                      <span className="material-symbols-outlined text-[13px] mr-0.5">trending_flat</span> {activePatient.vitals?.bp_status || 'Controlled'}
                     </span>
                   </div>
 
                   <div className="p-3 bg-surface-container-low rounded-lg space-y-0.5">
                     <span className="font-label-sm text-[10px] text-outline uppercase font-semibold">SpO2 Oxygen</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="font-headline-lg text-xl font-bold text-on-surface">98</span>
+                      <span className="font-headline-lg text-xl font-bold text-on-surface">{activePatient.vitals?.spo2 || 98}</span>
                       <span className="font-label-sm text-[10px] text-outline">%</span>
                     </div>
                     <span className="font-label-sm text-[11px] text-secondary font-medium flex items-center">
-                      <span className="material-symbols-outlined text-[13px] mr-0.5">air</span> Room Air
+                      <span className="material-symbols-outlined text-[13px] mr-0.5">air</span> {activePatient.vitals?.spo2_status || 'Room Air'}
                     </span>
                   </div>
 
                   <div className="p-3 bg-surface-container-low rounded-lg space-y-0.5">
                     <span className="font-label-sm text-[10px] text-outline uppercase font-semibold">Temperature</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="font-headline-lg text-xl font-bold text-on-surface">98.4</span>
+                      <span className="font-headline-lg text-xl font-bold text-on-surface">{activePatient.vitals?.temperature || 98.4}</span>
                       <span className="font-label-sm text-[10px] text-outline">°F</span>
                     </div>
                     <span className="font-label-sm text-[11px] text-secondary font-medium flex items-center">
-                      <span className="material-symbols-outlined text-[13px] mr-0.5">thermostat</span> Afebrile
+                      <span className="material-symbols-outlined text-[13px] mr-0.5">thermostat</span> {activePatient.vitals?.temp_status || 'Afebrile'}
                     </span>
                   </div>
                 </div>
@@ -745,6 +801,155 @@ export default function EMRView() {
             </button>
             <button type="submit" className="btn btn-primary">
               Issue Prescription
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Update Vitals Modal */}
+      <Modal
+        isOpen={isVitalsModalOpen}
+        onClose={() => setIsVitalsModalOpen(false)}
+        title={`Update Vitals for ${activePatient?.first_name || ''} ${activePatient?.last_name || ''}`}
+      >
+        <form onSubmit={handleVitalsSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="form-label">Blood Group</label>
+              <select
+                value={vitalsForm.blood_group}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, blood_group: e.target.value })}
+                className="select"
+              >
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Height (cm)</label>
+              <input
+                type="number"
+                value={vitalsForm.height_cm}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, height_cm: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Weight (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={vitalsForm.weight_kg}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, weight_kg: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Heart Rate (bpm)</label>
+              <input
+                type="number"
+                value={vitalsForm.heart_rate}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, heart_rate: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">HR Rhythm / Status</label>
+              <input
+                type="text"
+                value={vitalsForm.hr_status}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, hr_status: e.target.value })}
+                className="input"
+                placeholder="e.g. Normal Sinus, Tachycardia"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Systolic BP (mmHg)</label>
+              <input
+                type="number"
+                value={vitalsForm.bp_systolic}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, bp_systolic: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Diastolic BP (mmHg)</label>
+              <input
+                type="number"
+                value={vitalsForm.bp_diastolic}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, bp_diastolic: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">BP Status</label>
+              <input
+                type="text"
+                value={vitalsForm.bp_status}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, bp_status: e.target.value })}
+                className="input"
+                placeholder="e.g. Controlled, Elevated"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">SpO2 Oxygen (%)</label>
+              <input
+                type="number"
+                value={vitalsForm.spo2}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, spo2: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">SpO2 Support</label>
+              <input
+                type="text"
+                value={vitalsForm.spo2_status}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, spo2_status: e.target.value })}
+                className="input"
+                placeholder="e.g. Room Air, 2L Oxygen"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Temperature (°F)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={vitalsForm.temperature}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: Number(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Temp Status</label>
+              <input
+                type="text"
+                value={vitalsForm.temp_status}
+                onChange={(e) => setVitalsForm({ ...vitalsForm, temp_status: e.target.value })}
+                className="input"
+                placeholder="e.g. Afebrile, Mild Fever"
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer px-0 pb-0">
+            <button
+              type="button"
+              onClick={() => setIsVitalsModalOpen(false)}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Save Vitals & Telemetry
             </button>
           </div>
         </form>

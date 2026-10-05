@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { useAuth, ROLES } from '../context/AuthContext';
-import { Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Lock, ArrowRight, ArrowLeft, UserCheck } from 'lucide-react';
 
-export default function LoginPage({ onBackToLanding, onGoToAdminLogin }) {
+export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPatientLogin }) {
   const { login } = useAuth();
-  const staffRoles = ROLES.filter(r => r !== 'Administrator');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('Doctor');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,11 +19,17 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin }) {
     }
 
     setLoading(true);
-    const result = await login(email.trim(), password, selectedRole);
+    const result = await login(email.trim(), password);
     setLoading(false);
     if (!result.success) {
       setError(result.message || 'Authentication failed. Please verify credentials.');
     }
+  };
+
+  const setDemoStaff = (demoEmail) => {
+    setEmail(demoEmail);
+    setPassword('Password123!');
+    setError('');
   };
 
   return (
@@ -43,16 +47,15 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin }) {
 
       <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl border border-surface-container shadow-md p-8">
         {/* Brand */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-14 h-14 mx-auto mb-3 bg-primary rounded-xl flex items-center justify-center text-on-primary shadow-sm">
-            <span className="material-symbols-outlined text-[32px]">health_and_safety</span>
+            <span className="material-symbols-outlined text-[32px]">badge</span>
           </div>
           <div className="flex items-center justify-center gap-1.5 mb-1">
-            <h1 className="text-2xl font-bold text-on-surface tracking-tight font-headline-sm">MediCure</h1>
-            <span className="text-xs px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-bold">HMS</span>
+            <h1 className="text-2xl font-bold text-on-surface tracking-tight font-headline-sm">MediCure Staff Portal</h1>
           </div>
           <p className="text-outline text-xs">
-            Hospital Management System • Clinical Staff Portal
+            Hospital Management System • Role Checked Automatically Upon Sign In
           </p>
         </div>
 
@@ -100,47 +103,67 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
-              Clinical Role Context
-            </label>
-            <select
-              className="w-full px-3 py-2.5 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              value={selectedRole}
-              onChange={e => setSelectedRole(e.target.value)}
-            >
-              {staffRoles.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-
           <button
             type="submit"
             className="w-full mt-2 py-3 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
             disabled={loading}
           >
-            {loading ? 'Authenticating...' : 'Sign In to Clinical Portal'} <ArrowRight size={16} />
+            {loading ? 'Authenticating & Verifying Role...' : 'Sign In as Staff'} <ArrowRight size={16} />
           </button>
         </form>
 
-        {/* Dedicated Admin Portal Navigation */}
-        {onGoToAdminLogin && (
-          <div className="mt-6 pt-5 border-t border-surface-container text-center">
-            <p className="text-xs text-outline mb-2">
-              System Administrator?
-            </p>
+        {/* Quick Demo Staff Login Chips */}
+        <div className="mt-6 pt-4 border-t border-surface-container">
+          <span className="text-[11px] text-outline font-semibold uppercase tracking-wider block mb-2 text-center">
+            Quick Fill Demo Staff Credentials
+          </span>
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {[
+              { label: 'Doctor', email: 'dr.sarah@medicure.org' },
+              { label: 'Nurse', email: 'nurse.elena@medicure.org' },
+              { label: 'Reception', email: 'reception@medicure.org' },
+              { label: 'Lab Tech', email: 'lab.tech@medicure.org' },
+              { label: 'Pharmacy', email: 'pharmacy@medicure.org' },
+              { label: 'Billing', email: 'billing@medicure.org' },
+            ].map(item => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => setDemoStaff(item.email)}
+                className="px-2.5 py-1 rounded-md bg-surface-container-low hover:bg-primary-container text-on-surface hover:text-on-primary-container text-xs transition-all border border-surface-container cursor-pointer font-medium"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Navigation options */}
+        <div className="mt-6 pt-4 border-t border-surface-container flex flex-col gap-2 text-center">
+          {onGoToPatientLogin && (
+            <button
+              type="button"
+              onClick={onGoToPatientLogin}
+              className="text-xs text-primary font-semibold hover:underline flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">person</span>
+              <span>Looking for Patient Portal? Patient Login & Sign Up →</span>
+            </button>
+          )}
+
+          {onGoToAdminLogin && (
             <button
               type="button"
               onClick={onGoToAdminLogin}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-surface-container font-semibold text-xs border border-surface-container transition-all cursor-pointer"
+              className="text-xs text-outline hover:text-on-surface flex items-center justify-center gap-1 cursor-pointer mt-1"
             >
-              <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-              <span>Open Restricted Admin Portal</span>
+              <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
+              <span>System Administrator Portal</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

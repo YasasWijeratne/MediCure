@@ -1,8 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import Modal from '../components/Modal';
+import { useAuth } from '../context/AuthContext';
+
+const LAB_PRESETS = [
+  { name: 'Complete Blood Count (CBC)', fee: 45.00 },
+  { name: 'Lipid Panel Profile', fee: 85.00 },
+  { name: 'HbA1c Glycated Hemoglobin', fee: 65.00 },
+  { name: 'Troponin-I STAT Cardiac Marker', fee: 120.00 },
+  { name: 'Comprehensive Metabolic Panel (CMP)', fee: 95.00 },
+  { name: 'Thyroid Function Panel (TSH, Free T4)', fee: 90.00 },
+  { name: 'Urinalysis & Microscopy', fee: 50.00 },
+  { name: 'Vitamin D & B12 Screening', fee: 75.00 }
+];
 
 export default function LaboratoryView() {
+  const { user } = useAuth();
   const [labTests, setLabTests] = useState([]);
   const [patients, setPatients] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -11,6 +24,7 @@ export default function LaboratoryView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [reportModalTest, setReportModalTest] = useState(null);
+  const [lastSynced, setLastSynced] = useState('');
 
   const [requestData, setRequestData] = useState({
     patient_id: '',
@@ -22,24 +36,27 @@ export default function LaboratoryView() {
     sample_status: 'Sample Collected',
     result_data: '',
     clinical_notes: '',
-    technician: 'Dr. Maya Lin, MLS'
+    technician: user?.username || 'Lab Specialist'
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [labRes, patRes] = await Promise.all([
-        api.get('/lab-tests', { sample_status: statusFilter }),
+        api.get('/lab-tests'),
         api.get('/patients')
       ]);
 
-      if (labRes.success) setLabTests(labRes.data);
+      if (labRes.success) {
+        setLabTests(labRes.data || []);
+      }
       if (patRes.success) {
-        setPatients(patRes.data);
-        if (patRes.data.length > 0 && !requestData.patient_id) {
+        setPatients(patRes.data || []);
+        if (patRes.data && patRes.data.length > 0 && !requestData.patient_id) {
           setRequestData(prev => ({ ...prev, patient_id: patRes.data[0].id }));
         }
       }
+      setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (err) {
       console.error('Error fetching lab tests:', err);
     } finally {
@@ -49,10 +66,24 @@ export default function LaboratoryView() {
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter]);
+  }, []);
+
+  const handlePresetSelect = (e) => {
+    const selectedName = e.target.value;
+    const preset = LAB_PRESETS.find(p => p.name === selectedName);
+    if (preset) {
+      setRequestData(prev => ({ ...prev, test_name: preset.name, fee: preset.fee }));
+    } else {
+      setRequestData(prev => ({ ...prev, test_name: selectedName }));
+    }
+  };
 
   const handleRequest = async (e) => {
     e.preventDefault();
+    if (!requestData.patient_id || !requestData.test_name) {
+      alert('Please select a patient and provide a test name.');
+      return;
+    }
     try {
       const res = await api.post('/lab-tests', requestData);
       if (res.success) {
@@ -78,13 +109,25 @@ export default function LaboratoryView() {
     }
   };
 
+  const handleDeleteTest = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel and delete this lab test order?')) return;
+    try {
+      const res = await api.delete(`/lab-tests/${id}`);
+      if (res.success) {
+        fetchData();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const openUpdateModal = (test) => {
     setEditingTest(test);
     setUpdateData({
-      sample_status: test.sample_status,
+      sample_status: test.sample_status || 'Requested',
       result_data: test.result_data || '',
       clinical_notes: test.clinical_notes || '',
-      technician: test.technician || 'Dr. Maya Lin, MLS'
+      technician: test.technician || user?.username || 'Lab Specialist'
     });
   };
 
@@ -92,20 +135,21 @@ export default function LaboratoryView() {
   const inTestingCount = labTests.filter(t => t.sample_status === 'In Testing').length;
   const requestedCount = labTests.filter(t => t.sample_status === 'Requested').length;
   const sampleCollectedCount = labTests.filter(t => t.sample_status === 'Sample Collected').length;
-  const statTurnaround = '38m';
 
   const filteredTests = labTests.filter(t => {
+    const matchesStatus = !statusFilter || (t.sample_status || '').toLowerCase() === statusFilter.toLowerCase();
     const q = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       (t.test_name || '').toLowerCase().includes(q) ||
       (t.patient_name || '').toLowerCase().includes(q) ||
       (t.id || '').toLowerCase().includes(q)
     );
+    return matchesStatus && matchesSearch;
   });
 
   return (
     <div className="space-y-6">
-      {/* Top KPI Telemetry Banner (from stitch laboratory_pharmacy_inventory) */}
+      {/* Top KPI Telemetry Banner */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* KPI 1 */}
         <div className="relative overflow-hidden bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container">
@@ -118,10 +162,9 @@ export default function LaboratoryView() {
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="font-headline-lg text-3xl font-bold text-on-surface">{labTests.length}</span>
                 <span className="font-label-sm text-xs text-primary flex items-center font-semibold">
-                  <span className="material-symbols-outlined text-[14px]">trending_up</span> +14%
+                  <span className="material-symbols-outlined text-[14px]">trending_up</span> Active
                 </span>
               </div>
-
             </div>
             <div className="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[24px]">biotech</span>
@@ -131,20 +174,19 @@ export default function LaboratoryView() {
 
         {/* KPI 2 */}
         <div className="relative overflow-hidden bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-secondary"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-error"></div>
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="font-label-sm text-xs text-outline uppercase tracking-wider font-semibold">
-                Critical Turnaround
+                Awaiting Phlebotomy
               </span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline-lg text-3xl font-bold text-on-surface">{statTurnaround}</span>
-
+                <span className="font-headline-lg text-3xl font-bold text-error">{requestedCount}</span>
+                <span className="font-label-sm text-xs text-error font-semibold">Orders Queued</span>
               </div>
-
             </div>
-            <div className="w-11 h-11 rounded-xl bg-secondary-container/40 flex items-center justify-center text-secondary">
-              <span className="material-symbols-outlined text-[24px]">timer</span>
+            <div className="w-11 h-11 rounded-xl bg-error-container/30 flex items-center justify-center text-error">
+              <span className="material-symbols-outlined text-[24px]">hourglass_top</span>
             </div>
           </div>
         </div>
@@ -158,10 +200,9 @@ export default function LaboratoryView() {
                 In Analysis / Testing
               </span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline-lg text-3xl font-bold text-primary">{inTestingCount}</span>
-                <span className="font-label-sm text-xs text-primary font-semibold">Active Analyzers</span>
+                <span className="font-headline-lg text-3xl font-bold text-primary">{inTestingCount + sampleCollectedCount}</span>
+                <span className="font-label-sm text-xs text-primary font-semibold">In Active Pipeline</span>
               </div>
-
             </div>
             <div className="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[24px]">sync</span>
@@ -171,19 +212,18 @@ export default function LaboratoryView() {
 
         {/* KPI 4 */}
         <div className="relative overflow-hidden bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-outline"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-secondary"></div>
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="font-label-sm text-xs text-outline uppercase tracking-wider font-semibold">
                 Completed & Verified
               </span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline-lg text-3xl font-bold text-on-surface">{completedCount}</span>
+                <span className="font-headline-lg text-3xl font-bold text-secondary">{completedCount}</span>
                 <span className="font-label-sm text-xs text-secondary font-semibold">Verified Pathology</span>
               </div>
-
             </div>
-            <div className="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary">
+            <div className="w-11 h-11 rounded-xl bg-secondary-container/40 flex items-center justify-center text-secondary">
               <span className="material-symbols-outlined text-[24px]">verified</span>
             </div>
           </div>
@@ -279,17 +319,16 @@ export default function LaboratoryView() {
           </div>
         </div>
 
-        {/* Quick Triage Metric Ribbon (from stitch laboratory_pharmacy_inventory) */}
+        {/* Quick Triage Metric Ribbon */}
         <div className="bg-surface-container-low/70 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 border border-surface-container-high/40">
           <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5 font-label-sm text-xs text-outline font-semibold">
-              <span className="w-2 h-2 rounded-full bg-error animate-ping"></span>
               STAT Urgency: <strong className="text-on-surface ml-1">{requestedCount} Queued</strong>
             </span>
             <span className="h-3 w-px bg-surface-container-high hidden sm:block"></span>
             <span className="flex items-center gap-1.5 font-label-sm text-xs text-outline font-semibold">
               <span className="w-2 h-2 rounded-full bg-secondary"></span>
-              Roche Cobas Analyzer 6000: <strong className="text-primary ml-1">Online (Calibrated)</strong>
+              LIS System Status: <strong className="text-primary ml-1">Active & Calibrated</strong>
             </span>
           </div>
 
@@ -307,7 +346,7 @@ export default function LaboratoryView() {
               />
             </div>
             <span className="font-label-sm text-outline hidden md:inline">LIS Sync:</span>
-            <span className="font-mono text-on-surface font-semibold hidden md:inline"></span>
+            <span className="font-mono text-primary font-semibold hidden md:inline">{lastSynced || 'Live'}</span>
           </div>
         </div>
 
@@ -335,14 +374,14 @@ export default function LaboratoryView() {
               ) : filteredTests.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-8 text-outline">
-                    No laboratory tests found.
+                    No laboratory tests found matching filter criteria.
                   </td>
                 </tr>
               ) : (
                 filteredTests.map(test => (
                   <tr key={test.id} className="hover:bg-surface-container-low/40 transition-colors">
                     <td className="py-3.5 px-4 font-mono font-bold text-primary">
-                      Test
+                      {test.id ? test.id.toUpperCase() : 'LAB-001'}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
@@ -385,12 +424,12 @@ export default function LaboratoryView() {
                       {test.result_data || 'Pending diagnostic analysis'}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-outline text-xs whitespace-nowrap">
-                      {new Date(test.created_at).toLocaleString([], {
+                      {test.created_at ? new Date(test.created_at).toLocaleString([], {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
-                      })}
+                      }) : 'Recent'}
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
@@ -404,12 +443,19 @@ export default function LaboratoryView() {
                         {test.sample_status === 'Completed' && (
                           <button
                             onClick={() => setReportModalTest(test)}
-                            className="p-1 rounded-md bg-secondary-container/40 hover:bg-secondary-container text-secondary transition-all cursor-pointer"
+                            className="p-1.5 rounded-md bg-secondary-container/40 hover:bg-secondary-container text-secondary transition-all cursor-pointer"
                             title="View Formal Report"
                           >
                             <span className="material-symbols-outlined text-[18px]">description</span>
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteTest(test.id)}
+                          className="p-1.5 rounded-md bg-error-container/20 hover:bg-error-container/50 text-error transition-all cursor-pointer"
+                          title="Cancel & Delete Lab Order"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -437,7 +483,23 @@ export default function LaboratoryView() {
             >
               {patients.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.first_name} {p.last_name}
+                  {p.first_name} {p.last_name} ({p.id?.toUpperCase()})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Investigation Preset (Optional Quick Select)</label>
+            <select
+              onChange={handlePresetSelect}
+              className="select"
+              defaultValue=""
+            >
+              <option value="" disabled>-- Select a standard diagnostic preset --</option>
+              {LAB_PRESETS.map(p => (
+                <option key={p.name} value={p.name}>
+                  {p.name} (${p.fee.toFixed(2)})
                 </option>
               ))}
             </select>
@@ -459,6 +521,7 @@ export default function LaboratoryView() {
             <label className="form-label">Standard Laboratory Diagnostic Fee ($)</label>
             <input
               type="number"
+              step="0.01"
               value={requestData.fee}
               onChange={(e) => setRequestData({ ...requestData, fee: parseFloat(e.target.value) || 0 })}
               className="input"
@@ -494,7 +557,7 @@ export default function LaboratoryView() {
           <form onSubmit={handleUpdateStatus} className="space-y-4">
             <div className="p-3 bg-surface-container-low rounded-lg text-xs space-y-1">
               <div><strong>Patient:</strong> {editingTest.patient_name}</div>
-              <div><strong>Test Ref:</strong> Test</div>
+              <div><strong>Test Ref ID:</strong> <span className="font-mono text-primary font-bold">{editingTest.id ? editingTest.id.toUpperCase() : 'LAB-001'}</span></div>
             </div>
 
             <div className="form-group">
@@ -506,7 +569,7 @@ export default function LaboratoryView() {
               >
                 <option value="Requested">Requested (Awaiting Phlebotomy)</option>
                 <option value="Sample Collected">Sample Collected (In Transit)</option>
-                <option value="In Testing">In Testing (Cobas 6000 Processing)</option>
+                <option value="In Testing">In Testing (Automated Analyzer Processing)</option>
                 <option value="Completed">Completed & Verified</option>
               </select>
             </div>
@@ -519,6 +582,17 @@ export default function LaboratoryView() {
                 className="textarea"
                 rows="3"
                 placeholder="Enter quantitative values, reference ranges, abnormal flags (e.g. WBC: 6.8 x10^3/uL normal)..."
+              ></textarea>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Clinical Observations / Physician Notes</label>
+              <textarea
+                value={updateData.clinical_notes}
+                onChange={(e) => setUpdateData({ ...updateData, clinical_notes: e.target.value })}
+                className="textarea"
+                rows="2"
+                placeholder="Diagnostic notes or clinical follow-up recommendations..."
               ></textarea>
             </div>
 
@@ -557,43 +631,53 @@ export default function LaboratoryView() {
         >
           <div className="space-y-4 text-xs md:text-sm">
             <div className="p-4 bg-surface-container-low rounded-xl border border-surface-container-high/60 space-y-2">
-              <div className="flex justify-between items-center border-b border-surface-container pb-2">
+              <div className="flex justify-between items-start border-b border-surface-container pb-2">
                 <div>
                   <h3 className="font-bold text-primary font-headline-sm text-base">MediCure Central Pathology</h3>
                   <p className="text-[11px] text-outline">CAP / CLIA Accredited Diagnostic Facility</p>
                 </div>
                 <div className="text-right font-mono text-xs">
-                  <div className="font-bold text-on-surface">Test Report</div>
-                  <div className="text-secondary font-semibold">VERIFIED REPORT</div>
+                  <div className="font-bold text-on-surface">REF: {reportModalTest.id ? reportModalTest.id.toUpperCase() : 'LAB-001'}</div>
+                  <div className="text-secondary font-semibold text-[11px] flex items-center justify-end gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[14px]">verified</span> VERIFIED REPORT
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                <div><strong>Patient:</strong> {reportModalTest.patient_name}</div>
-                <div><strong>Date Ordered:</strong> {new Date(reportModalTest.created_at).toLocaleDateString()}</div>
+                <div><strong>Patient Name:</strong> {reportModalTest.patient_name}</div>
+                <div><strong>Date Ordered:</strong> {reportModalTest.created_at ? new Date(reportModalTest.created_at).toLocaleDateString() : 'Recent'}</div>
                 <div><strong>Investigation:</strong> {reportModalTest.test_name}</div>
-                <div><strong>Certifying Scientist:</strong> {reportModalTest.technician || 'Dr. Maya Lin, MLS'}</div>
+                <div><strong>Certifying Scientist:</strong> {reportModalTest.technician || user?.username || 'Lab Specialist'}</div>
               </div>
             </div>
 
             <div className="p-4 bg-surface-container-lowest rounded-xl border border-surface-container space-y-2">
-              <h4 className="font-bold text-xs uppercase text-outline">Report Findings</h4>
+              <h4 className="font-bold text-xs uppercase text-outline">Laboratory Findings & Result Data</h4>
               <p className="p-3 bg-surface-container-low/60 rounded-lg text-on-surface font-mono text-xs leading-relaxed whitespace-pre-wrap">
                 {reportModalTest.result_data || 'Normal physiological reference metrics verified.'}
               </p>
+              {reportModalTest.clinical_notes && (
+                <div className="pt-2 border-t border-surface-container">
+                  <span className="font-bold text-[11px] text-outline block mb-0.5">Clinical Remarks:</span>
+                  <p className="text-on-surface-variant italic text-xs">{reportModalTest.clinical_notes}</p>
+                </div>
+              )}
             </div>
 
             <div className="modal-footer px-0 pb-0">
               <button
+                type="button"
                 onClick={() => window.print()}
-                className="btn btn-secondary flex items-center gap-1.5"
+                className="btn btn-secondary flex items-center gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px]">print</span>
                 Print Report
               </button>
               <button
+                type="button"
                 onClick={() => setReportModalTest(null)}
-                className="btn btn-primary"
+                className="btn btn-primary cursor-pointer"
               >
                 Close Certificate
               </button>

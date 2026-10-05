@@ -1,6 +1,9 @@
 import React from 'react';
 
-export default function LandingPageView({ onEnterPortal, onEnterAdminLogin }) {
+export default function LandingPageView({ onEnterPortal, onEnterPatientLogin, onEnterStaffLogin, onEnterAdminLogin }) {
+  const handlePatientClick = onEnterPatientLogin || onEnterPortal;
+  const handleStaffClick = onEnterStaffLogin || onEnterPortal;
+
   return (
     <div className="bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col selection:bg-secondary-container selection:text-on-secondary-container">
       {/* Top Navigation Bar */}
@@ -39,18 +42,18 @@ export default function LandingPageView({ onEnterPortal, onEnterAdminLogin }) {
               </button>
             )}
             <button
-              onClick={onEnterPortal}
-              className="hidden sm:inline-flex items-center justify-center font-label-lg text-sm text-primary hover:bg-surface-container-low px-4 py-2.5 rounded-lg transition-all cursor-pointer font-semibold"
+              onClick={handleStaffClick}
+              className="hidden sm:inline-flex items-center justify-center font-label-lg text-sm text-primary hover:bg-surface-container-low px-4 py-2.5 rounded-lg transition-all cursor-pointer font-semibold border border-surface-container"
               type="button"
             >
               Staff Login
             </button>
             <button
-              onClick={onEnterPortal}
+              onClick={handlePatientClick}
               className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-on-primary font-label-lg text-sm px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer font-semibold active:scale-[0.98]"
               type="button"
             >
-              <span>Clinical Portal</span>
+              <span>Patient Portal</span>
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center ml-1">
                 <span className="material-symbols-outlined text-on-primary text-[16px]">arrow_forward</span>
               </div>
@@ -77,27 +80,35 @@ export default function LandingPageView({ onEnterPortal, onEnterAdminLogin }) {
                 </span>
                 <span className="font-label-md text-xs text-primary font-semibold tracking-wide uppercase">MediCure HMS</span>
                 <span className="h-3 w-px bg-outline-variant/60"></span>
-                <span className="font-label-sm text-xs text-on-surface-variant">Node.js + React • REST API</span>
+                <span className="font-label-sm text-xs text-on-surface-variant">Patient Portal & Staff Management</span>
               </div>
 
               {/* Hero Heading */}
               <h1 className="font-display-lg text-3xl sm:text-5xl lg:text-6xl font-bold text-on-surface tracking-tight max-w-4xl leading-tight">
-                Integrated Hospital Management for Modern Clinical Teams
+                Integrated Hospital Management & Patient Portal
               </h1>
 
               <p className="font-body-lg text-base sm:text-lg text-on-surface-variant max-w-2xl mt-5">
-                A unified clinical system covering patient records, appointments, inpatient admissions, laboratory workflow, pharmacy inventory, billing, staff management, and security audit — all in one portal.
+                Patients can log in to book appointments, view medical records, lab reports, and billing. Clinical staff can sign in to manage hospital operations seamlessly.
               </p>
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
                 <button
-                  onClick={onEnterPortal}
+                  onClick={handlePatientClick}
                   className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-lg bg-primary text-on-primary font-label-lg text-sm font-semibold shadow-md hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98]"
                   type="button"
                 >
-                  <span>Enter Clinical Portal</span>
+                  <span>Patient Login & Sign Up</span>
                   <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                </button>
+                <button
+                  onClick={handleStaffClick}
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-surface-container-lowest text-primary font-label-lg text-sm font-semibold shadow-xs hover:bg-surface-container transition-all border border-surface-container-high/60 cursor-pointer"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[20px]">badge</span>
+                  <span>Staff Sign In</span>
                 </button>
                 <a
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-surface-container-lowest text-primary font-label-lg text-sm font-semibold shadow-xs hover:bg-surface-container transition-all border border-surface-container-high/60"

@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginPage from './views/LoginPage';
+import PatientLoginPage from './views/PatientLoginPage';
+import PatientPortalView from './views/PatientPortalView';
 import AdminLoginPage from './views/AdminLoginPage';
 import LandingPageView from './views/LandingPageView';
 
@@ -23,47 +25,77 @@ function MainApp() {
   const { isAuthenticated, currentRole } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('light');
-  const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'portal' | 'admin-login'
+  const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'staff-login' | 'patient-login' | 'admin-login'
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (currentRole === 'Patient' && !['appointments', 'emr', 'laboratory', 'billing'].includes(activeTab)) {
+      setActiveTab('appointments');
+    }
+  }, [currentRole]);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // If in public landing page mode, render LandingPageView
-  if (viewMode === 'landing') {
+  // 1. If in public landing page mode, render LandingPageView
+  if (!isAuthenticated && viewMode === 'landing') {
     return (
       <LandingPageView
-        onEnterPortal={() => setViewMode('portal')}
+        onEnterPatientLogin={() => setViewMode('patient-login')}
+        onEnterStaffLogin={() => setViewMode('staff-login')}
         onEnterAdminLogin={() => setViewMode('admin-login')}
+        onEnterPortal={() => setViewMode('patient-login')}
       />
     );
   }
 
-  // If entering dedicated admin login portal and not authenticated
-  if (viewMode === 'admin-login' && !isAuthenticated) {
+  // 2. If entering patient login / signup page
+  if (!isAuthenticated && viewMode === 'patient-login') {
+    return (
+      <PatientLoginPage
+        onBackToLanding={() => setViewMode('landing')}
+        onGoToStaffLogin={() => setViewMode('staff-login')}
+      />
+    );
+  }
+
+  // 3. If entering dedicated admin login portal and not authenticated
+  if (!isAuthenticated && viewMode === 'admin-login') {
     return (
       <AdminLoginPage
         onBackToLanding={() => setViewMode('landing')}
-        onGoToStaffLogin={() => setViewMode('portal')}
+        onGoToStaffLogin={() => setViewMode('staff-login')}
       />
     );
   }
 
-  // If entering clinical portal and not authenticated, render LoginPage with option to go back or switch to admin
+  // 4. If entering clinical staff login page and not authenticated
   if (!isAuthenticated) {
     return (
       <LoginPage
         onBackToLanding={() => setViewMode('landing')}
         onGoToAdminLogin={() => setViewMode('admin-login')}
+        onGoToPatientLogin={() => setViewMode('patient-login')}
       />
     );
   }
 
+  // 5. Render authenticated app layout (Both Patient and Staff use standard layout with Sidebar)
   const renderView = () => {
+    if (currentRole === 'Patient') {
+      return (
+        <PatientPortalView
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onGoToLanding={() => setViewMode('landing')}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView onNavigate={(tab) => setActiveTab(tab)} />;

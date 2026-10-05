@@ -22,12 +22,39 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
+const configuredOrigin = process.env.CORS_ORIGIN;
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || !configuredOrigin || configuredOrigin === '*') {
+      return callback(null, true);
+    }
+    const origins = configuredOrigin.split(',').map(o => o.trim().replace(/\/+$/, ''));
+    if (origins.includes(origin.replace(/\/+$/, ''))) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+
+// Support requests with or without /api prefix (graceful handling of misconfigured frontend base URLs)
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api') && req.url !== '/') {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
+
+// Root & Health check endpoints
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    system: 'MediCure Hospital Management System Backend',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);

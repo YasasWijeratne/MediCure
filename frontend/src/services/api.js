@@ -1,8 +1,14 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const rawBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
+
+const formatUrl = (endpoint) => {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${cleanEndpoint}`;
+};
 
 export const api = {
   async get(endpoint, params = {}) {
-    const url = new URL(`${API_BASE_URL}${endpoint}`);
+    const url = new URL(formatUrl(endpoint));
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== null) {
         url.searchParams.append(key, params[key]);
@@ -17,7 +23,7 @@ export const api = {
   },
 
   async post(endpoint, data = {}) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(formatUrl(endpoint), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -32,7 +38,7 @@ export const api = {
   },
 
   async put(endpoint, data = {}) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(formatUrl(endpoint), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -47,7 +53,7 @@ export const api = {
   },
 
   async delete(endpoint) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(formatUrl(endpoint), {
       method: 'DELETE'
     });
     if (!response.ok) {

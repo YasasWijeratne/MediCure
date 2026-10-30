@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 export default function AdminLoginPage({ onBackToLanding, onGoToStaffLogin }) {
   const { login } = useAuth();
@@ -89,18 +90,13 @@ export default function AdminLoginPage({ onBackToLanding, onGoToStaffLogin }) {
             <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
               Password
             </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">lock</span>
-              <input
-                type="password"
-                className="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Enter password"
-                autoComplete="current-password"
-              />
-            </div>
+            <PasswordInput
+              id="admin-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Enter administrator password"
+              autoComplete="current-password"
+            />
           </div>
 
           <button

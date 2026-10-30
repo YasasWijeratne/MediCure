@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, ArrowRight, ArrowLeft, UserCheck } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
+import PasswordInput from '../components/PasswordInput';
 
 export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPatientLogin }) {
   const { login } = useAuth();
@@ -89,18 +90,13 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPat
             <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
               Password
             </label>
-            <div className="relative">
-              <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-              <input
-                type="password"
-                className="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Enter password"
-                autoComplete="current-password"
-              />
-            </div>
+            <PasswordInput
+              id="staff-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+            />
           </div>
 
           <button

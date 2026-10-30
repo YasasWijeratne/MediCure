@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, ArrowRight, Lock, Mail, User, Calendar, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
+import PasswordInput, { PasswordStrengthMeter } from '../components/PasswordInput';
 
 export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) {
   const { login, patientRegister } = useAuth();
@@ -60,8 +61,14 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
       setError('Passwords do not match.');
       return;
     }
-    if (registerForm.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    // Enforce full password strength (same rules as backend)
+    const strongEnough = registerForm.password.length >= 8 &&
+      /[A-Z]/.test(registerForm.password) &&
+      /[a-z]/.test(registerForm.password) &&
+      /[0-9]/.test(registerForm.password) &&
+      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`§±]/.test(registerForm.password);
+    if (!strongEnough) {
+      setError('Please choose a stronger password. It must be at least 8 characters and include uppercase, lowercase, a number, and a special character.');
       return;
     }
 
@@ -163,18 +170,13 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
               <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
                 Password
               </label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-                <input
-                  type="password"
-                  className="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  required
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                />
-              </div>
+              <PasswordInput
+                id="patient-login-password"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
             </div>
 
             <button
@@ -294,27 +296,32 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
                 <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                   Password
                 </label>
-                <input
-                  type="password"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  required
+                <PasswordInput
+                  id="patient-reg-password"
                   value={registerForm.password}
                   onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
-                  placeholder="••••••••"
+                  placeholder="Create password"
+                  autoComplete="new-password"
                 />
+                <PasswordStrengthMeter password={registerForm.password} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                   Confirm Password
                 </label>
-                <input
-                  type="password"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface border border-surface-container focus:border-primary focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  required
+                <PasswordInput
+                  id="patient-reg-confirm-password"
                   value={registerForm.confirm_password}
                   onChange={e => setRegisterForm({ ...registerForm, confirm_password: e.target.value })}
-                  placeholder="••••••••"
+                  placeholder="Repeat password"
+                  autoComplete="new-password"
                 />
+                {registerForm.confirm_password && registerForm.password !== registerForm.confirm_password && (
+                  <p className="text-[11px] text-error mt-1">Passwords do not match</p>
+                )}
+                {registerForm.confirm_password && registerForm.password === registerForm.confirm_password && (
+                  <p className="text-[11px] text-green-500 mt-1">✓ Passwords match</p>
+                )}
               </div>
             </div>
 

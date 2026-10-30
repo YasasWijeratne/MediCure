@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -16,35 +16,49 @@ export const ROLES = [
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('medicure_auth') === 'true';
+    return !!localStorage.getItem('medicure_access_token') && localStorage.getItem('medicure_auth') === 'true';
   });
 
   const [currentRole, setCurrentRole] = useState(() => {
-    return localStorage.getItem('medicure_role') || 'Administrator';
+    return localStorage.getItem('medicure_role') || '';
   });
 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('medicure_user');
-    return saved ? JSON.parse(saved) : {
-      id: 'u1',
-      username: 'admin',
-      email: 'admin@medicure.org',
-      role: 'Administrator'
-    };
+    return saved ? JSON.parse(saved) : null;
   });
+
+  // Listen for global session-expired event dispatched by api.js when refresh fails
+  const forceLogout = useCallback(() => {
+    setIsAuthenticated(false);
+    setCurrentRole('');
+    setUser(null);
+    api.clearTokens();
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('auth:session-expired', forceLogout);
+    return () => window.removeEventListener('auth:session-expired', forceLogout);
+  }, [forceLogout]);
+
+  const _persistSession = (userData, accessToken, refreshToken) => {
+    setIsAuthenticated(true);
+    setCurrentRole(userData.role);
+    setUser(userData);
+    api.setTokens(accessToken, refreshToken);
+    localStorage.setItem('medicure_auth', 'true');
+    localStorage.setItem('medicure_role', userData.role);
+    localStorage.setItem('medicure_user', JSON.stringify(userData));
+  };
 
   const login = async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, username: email, password });
       if (res.success) {
-        setIsAuthenticated(true);
-        setCurrentRole(res.user.role);
-        setUser(res.user);
-        localStorage.setItem('medicure_auth', 'true');
-        localStorage.setItem('medicure_role', res.user.role);
-        localStorage.setItem('medicure_user', JSON.stringify(res.user));
+        _persistSession(res.user, res.accessToken, res.refreshToken);
         return { success: true, user: res.user };
       }
+      return { success: false, message: res.message || 'Login failed' };
     } catch (err) {
       return { success: false, message: err.message };
     }
@@ -54,14 +68,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/auth/patient-register', patientData);
       if (res.success) {
-        setIsAuthenticated(true);
-        setCurrentRole('Patient');
-        setUser(res.user);
-        localStorage.setItem('medicure_auth', 'true');
-        localStorage.setItem('medicure_role', 'Patient');
-        localStorage.setItem('medicure_user', JSON.stringify(res.user));
+        _persistSession(res.user, res.accessToken, res.refreshToken);
         return { success: true, user: res.user };
       }
+      return { success: false, message: res.message || 'Registration failed' };
     } catch (err) {
       return { success: false, message: err.message };
     }
@@ -69,13 +79,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
-    setCurrentRole('Administrator');
-    setUser({ id: '', username: '', email: '', role: '' });
-    localStorage.removeItem('medicure_auth');
-    localStorage.removeItem('medicure_role');
-    localStorage.removeItem('medicure_user');
+    setCurrentRole('');
+    setUser(null);
+    api.clearTokens();
   };
 
+  // switchRole is kept for demo/dev purposes only — in production this would be removed
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
     const updatedUser = {

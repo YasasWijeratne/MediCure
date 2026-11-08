@@ -2,12 +2,16 @@ import { labModel } from '../models/labModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { billingModel } from '../models/billingModel.js';
 import { generateId } from '../utils/helpers.js';
+import { getAuthenticatedPatientId, isPatient, patientFilter } from '../middleware/patientAccess.js';
 
 export const labController = {
   async getAll(req, res) {
     try {
+      if (isPatient(req) && !getAuthenticatedPatientId(req)) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
       const { sample_status, patient_id } = req.query;
-      const results = await labModel.getAll({ sample_status, patient_id });
+      const results = await labModel.getAll({ sample_status, patient_id: patientFilter(req, patient_id) });
       res.json({ success: true, count: results.length, data: results });
     } catch (err) {
       console.error('labController.getAll error:', err);

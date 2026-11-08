@@ -2,12 +2,16 @@ import { admissionModel } from '../models/admissionModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { billingModel } from '../models/billingModel.js';
 import { generateId, logAuditEvent } from '../utils/helpers.js';
+import { getAuthenticatedPatientId, isPatient, patientFilter } from '../middleware/patientAccess.js';
 
 export const admissionController = {
   async getAll(req, res) {
     try {
+      if (isPatient(req) && !getAuthenticatedPatientId(req)) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
       const { status, patient_id } = req.query;
-      const results = await admissionModel.getAll({ status, patient_id });
+      const results = await admissionModel.getAll({ status, patient_id: patientFilter(req, patient_id) });
       res.json({ success: true, count: results.length, data: results });
     } catch (err) {
       console.error('admissionController.getAll error:', err);

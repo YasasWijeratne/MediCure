@@ -1,5 +1,6 @@
 import { patientModel } from '../models/patientModel.js';
 import { logAuditEvent } from '../utils/helpers.js';
+import { assertPatientAccess } from '../middleware/patientAccess.js';
 
 export const patientController = {
   async getAll(req, res) {
@@ -15,6 +16,7 @@ export const patientController = {
 
   async getById(req, res) {
     try {
+      if (!assertPatientAccess(req, res, req.params.id)) return;
       const patient = await patientModel.getById(req.params.id);
       if (!patient) {
         return res.status(404).json({ success: false, message: 'Patient not found' });

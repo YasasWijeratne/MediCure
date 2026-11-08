@@ -4,12 +4,16 @@ import { doctorModel } from '../models/doctorModel.js';
 import { appointmentModel } from '../models/appointmentModel.js';
 import { pharmacyModel } from '../models/pharmacyModel.js';
 import { generateId } from '../utils/helpers.js';
+import { assertPatientAccess, getAuthenticatedPatientId, isPatient, patientFilter } from '../middleware/patientAccess.js';
 
 export const emrController = {
   async getPrescriptions(req, res) {
     try {
+      if (isPatient(req) && !getAuthenticatedPatientId(req)) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
       const { patient_id, doctor_id } = req.query;
-      const results = await emrModel.getPrescriptions({ patient_id, doctor_id });
+      const results = await emrModel.getPrescriptions({ patient_id: patientFilter(req, patient_id), doctor_id });
       res.json({ success: true, count: results.length, data: results });
     } catch (err) {
       console.error('emrController.getPrescriptions error:', err);
@@ -19,6 +23,7 @@ export const emrController = {
 
   async getPatientEMR(req, res) {
     try {
+      if (!assertPatientAccess(req, res, req.params.patient_id)) return;
       const emr = await emrModel.getPatientEMR(req.params.patient_id);
       if (!emr) {
         return res.status(404).json({ success: false, message: 'Patient not found' });

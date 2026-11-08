@@ -3,12 +3,16 @@ import { patientModel } from '../models/patientModel.js';
 import { doctorModel } from '../models/doctorModel.js';
 import { billingModel } from '../models/billingModel.js';
 import { generateId, logAuditEvent } from '../utils/helpers.js';
+import { assertPatientAccess, getAuthenticatedPatientId, isPatient, patientFilter } from '../middleware/patientAccess.js';
 
 export const appointmentController = {
   async getAll(req, res) {
     try {
+      if (isPatient(req) && !getAuthenticatedPatientId(req)) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
       const { status, doctor_id, patient_id } = req.query;
-      const results = await appointmentModel.getAll({ status, doctor_id, patient_id });
+      const results = await appointmentModel.getAll({ status, doctor_id, patient_id: patientFilter(req, patient_id) });
       res.json({ success: true, count: results.length, data: results });
     } catch (err) {
       console.error('appointmentController.getAll error:', err);
@@ -31,7 +35,11 @@ export const appointmentController = {
 
   async create(req, res) {
     try {
-      const { patient_id, doctor_id, scheduled_at, notes, user_email } = req.body;
+      const { patient_id: requestedPatientId, doctor_id, scheduled_at, notes, user_email } = req.body;
+      const patient_id = patientFilter(req, requestedPatientId);
+      if (isPatient(req) && !patient_id) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
 
       if (!patient_id || !doctor_id || !scheduled_at) {
         return res.status(400).json({ success: false, message: 'Patient, Doctor, and Appointment Date/Time are required.' });
@@ -96,6 +104,7 @@ export const appointmentController = {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Appointment not found' });
       }
+      if (!assertPatientAccess(req, res, existing.patient_id)) return;
 
       const updated = await appointmentModel.update(req.params.id, {
         scheduled_at,
@@ -122,6 +131,7 @@ export const appointmentController = {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Appointment not found' });
       }
+      if (!assertPatientAccess(req, res, existing.patient_id)) return;
 
       const updated = await appointmentModel.update(req.params.id, req.body);
       logAuditEvent('APPOINTMENT_STATUS_UPDATE', req.body.user_email, `Appointment ${existing.id} status changed to ${updated.status}`);
@@ -143,6 +153,7 @@ export const appointmentController = {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Appointment not found' });
       }
+      if (!assertPatientAccess(req, res, existing.patient_id)) return;
 
       await appointmentModel.cancel(req.params.id);
       logAuditEvent('APPOINTMENT_CANCELLED', req.body?.user_email, `Appointment ${existing.id} marked as cancelled`);

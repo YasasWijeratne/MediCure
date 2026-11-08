@@ -1,12 +1,16 @@
 import { billingModel } from '../models/billingModel.js';
 import { patientModel } from '../models/patientModel.js';
 import { generateId } from '../utils/helpers.js';
+import { assertPatientAccess, getAuthenticatedPatientId, isPatient, patientFilter } from '../middleware/patientAccess.js';
 
 export const billingController = {
   async getInvoices(req, res) {
     try {
+      if (isPatient(req) && !getAuthenticatedPatientId(req)) {
+        return res.status(403).json({ success: false, message: 'Patient account is not linked to a patient record.' });
+      }
       const { status, patient_id } = req.query;
-      const results = await billingModel.getAll({ status, patient_id });
+      const results = await billingModel.getAll({ status, patient_id: patientFilter(req, patient_id) });
       res.json({ success: true, count: results.length, data: results });
     } catch (err) {
       console.error('billingController.getInvoices error:', err);
@@ -20,6 +24,7 @@ export const billingController = {
       if (!invoice) {
         return res.status(404).json({ success: false, message: 'Invoice not found' });
       }
+      if (!assertPatientAccess(req, res, invoice.patient_id)) return;
       res.json({ success: true, data: invoice });
     } catch (err) {
       console.error('billingController.getInvoiceById error:', err);

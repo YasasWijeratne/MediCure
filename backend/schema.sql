@@ -230,11 +230,6 @@ INSERT INTO roles (name, permissions) VALUES
 ('Accountant', '{"billing.manage", "invoices.manage", "reports.financial"}')
 ON CONFLICT (name) DO NOTHING;
 
--- Seed Default Admin User (default password: Password123! — hashed on first login)
-INSERT INTO users (username, email, password, role_name)
-SELECT 'admin', 'admin@medicure.org', 'password123', 'Administrator'
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
-
 -- Seed Default Departments
 INSERT INTO departments (name, description) VALUES
 ('Cardiology', 'Heart and cardiovascular system disorders'),

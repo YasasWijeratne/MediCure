@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDatabase } from './config/supabase.js';
+import { validateSecurityConfig } from './config/security.js';
 
 import authRoutes from './routes/auth.js';
 import patientRoutes from './routes/patients.js';
@@ -17,6 +18,7 @@ import admissionRoutes from './routes/admissions.js';
 import systemRoutes from './routes/system.js';
 
 dotenv.config();
+validateSecurityConfig();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

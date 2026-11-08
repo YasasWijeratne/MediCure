@@ -3,8 +3,7 @@ import { patientModel } from '../models/patientModel.js';
 import { logAuditEvent } from '../utils/helpers.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'medicure_super_secret_jwt_key_change_in_production_2026';
+import { getJwtSecret } from '../config/security.js';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -35,8 +34,9 @@ const signTokens = (user) => {
     patient_id: user.patient_id || null
   };
 
-  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-  const refreshToken = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  const secret = getJwtSecret();
+  const accessToken = jwt.sign(payload, secret, { expiresIn: JWT_EXPIRES_IN });
+  const refreshToken = jwt.sign({ id: user.id, email: user.email }, secret, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 
   return { accessToken, refreshToken };
 };
@@ -109,7 +109,7 @@ export const authController = {
 
       let decoded;
       try {
-        decoded = jwt.verify(refreshToken, JWT_SECRET);
+        decoded = jwt.verify(refreshToken, getJwtSecret());
       } catch (err) {
         return res.status(401).json({ success: false, message: 'Invalid or expired refresh token. Please log in again.' });
       }

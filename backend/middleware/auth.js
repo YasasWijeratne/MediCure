@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'medicure_super_secret_jwt_key_change_in_production_2026';
+import { getJwtSecret } from '../config/security.js';
 
 /**
  * authenticate — verifies the Bearer JWT from the Authorization header.
@@ -14,7 +13,7 @@ export const authenticate = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     req.user = decoded;
     next();
   } catch (err) {

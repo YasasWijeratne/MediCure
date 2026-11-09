@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 import PasswordInput, { PasswordStrengthMeter } from '../components/PasswordInput';
+import MediCureLogo from '../components/MediCureLogo';
 
 export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) {
   const { login, patientRegister } = useAuth();
@@ -103,9 +104,7 @@ export default function PatientLoginPage({ onBackToLanding, onGoToStaffLogin }) 
       <div className="w-full max-w-lg bg-surface-container-lowest rounded-2xl border border-surface-container shadow-lg p-6 sm:p-8">
         {/* Header Branding */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-3 bg-primary rounded-2xl flex items-center justify-center text-on-primary shadow-sm">
-            <span className="material-symbols-outlined text-[32px]">clinical_notes</span>
-          </div>
+          <MediCureLogo size={58} className="justify-center mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-on-surface tracking-tight font-headline-sm">MediCure Patient Portal</h1>
           <p className="text-outline text-xs mt-1">
             Access appointments, medical records, prescriptions, lab results & bills

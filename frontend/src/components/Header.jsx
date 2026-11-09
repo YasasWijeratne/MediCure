@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth, ROLES } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
 import { api } from '../services/api';
 
 export default function Header({ theme, toggleTheme }) {
-  const { currentRole, switchRole, user, logout } = useAuth();
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
@@ -238,4 +237,3 @@ export default function Header({ theme, toggleTheme }) {
     </header>
   );
 }
-

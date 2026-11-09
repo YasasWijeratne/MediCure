@@ -20,7 +20,8 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [currentRole, setCurrentRole] = useState(() => {
-    return localStorage.getItem('medicure_role') || '';
+    const saved = localStorage.getItem('medicure_user');
+    return saved ? JSON.parse(saved).role || '' : '';
   });
 
   const [user, setUser] = useState(() => {
@@ -47,7 +48,6 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     api.setTokens(accessToken, refreshToken);
     localStorage.setItem('medicure_auth', 'true');
-    localStorage.setItem('medicure_role', userData.role);
     localStorage.setItem('medicure_user', JSON.stringify(userData));
   };
 
@@ -84,20 +84,6 @@ export const AuthProvider = ({ children }) => {
     api.clearTokens();
   };
 
-  // switchRole is kept for demo/dev purposes only — in production this would be removed
-  const switchRole = (newRole) => {
-    setCurrentRole(newRole);
-    const updatedUser = {
-      id: `u_${newRole.toLowerCase().replace(/\s+/g, '_')}`,
-      username: newRole.toLowerCase().replace(/\s+/g, '_'),
-      email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@medicure.org`,
-      role: newRole
-    };
-    setUser(updatedUser);
-    localStorage.setItem('medicure_role', newRole);
-    localStorage.setItem('medicure_user', JSON.stringify(updatedUser));
-  };
-
   const hasPermission = (moduleName) => {
     if (currentRole === 'Administrator') return true;
     if (currentRole === 'Patient') {
@@ -121,7 +107,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, currentRole, login, patientRegister, logout, switchRole, hasPermission }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, currentRole, login, patientRegister, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

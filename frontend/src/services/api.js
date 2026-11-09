@@ -17,7 +17,6 @@ const clearTokens = () => {
   localStorage.removeItem('medicure_access_token');
   localStorage.removeItem('medicure_refresh_token');
   localStorage.removeItem('medicure_auth');
-  localStorage.removeItem('medicure_role');
   localStorage.removeItem('medicure_user');
 };
 

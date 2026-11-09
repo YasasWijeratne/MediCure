@@ -14,6 +14,7 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
   const [labTests, setLabTests] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [portalError, setPortalError] = useState('');
 
   // Booking Modal
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
@@ -32,82 +33,41 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
 
   const loadPatientData = async () => {
     setLoading(true);
+    setPortalError('');
     try {
       // 1. Fetch doctors for booking dropdowns
       const docsRes = await api.get('/doctors');
       if (docsRes.data) setDoctors(docsRes.data);
 
-      // 2. Fetch patient directory
-      const pRes = await api.get('/patients');
-      const allPatients = pRes.data || [];
-
-      const userEmail = (user.email || '').toLowerCase();
-      const usernameParts = (user.username || '').split(/[._\s]+/);
-      const userFirstName = usernameParts[0] ? usernameParts[0].toLowerCase() : '';
-      const userLastName = usernameParts[1] ? usernameParts[1].toLowerCase() : '';
-
-      let match = allPatients.find(p => {
-        if (user.patient_id && p.id === user.patient_id) return true;
-        if (p.email && p.email.toLowerCase() === userEmail) return true;
-        if (p.contact && userEmail && p.contact.toLowerCase().includes(userEmail)) return true;
-        if (userFirstName && userLastName && p.first_name?.toLowerCase() === userFirstName && p.last_name?.toLowerCase() === userLastName) return true;
-        if (userFirstName && p.first_name?.toLowerCase() === userFirstName) return true;
-        return false;
-      });
-
-      // If no patient record matched in database, construct profile from logged-in user details
-      if (!match) {
-        const fName = userFirstName ? userFirstName.charAt(0).toUpperCase() + userFirstName.slice(1) : 'Alice';
-        const lName = userLastName ? userLastName.charAt(0).toUpperCase() + userLastName.slice(1) : 'Smith';
-
-        match = {
-          id: user.patient_id || user.id || 'PAT-102',
-          first_name: fName,
-          last_name: lName,
-          email: user.email || 'alice.smith@medicure.org',
-          dob: '1992-11-03',
-          gender: 'Female',
-          contact: user.email || '+1 (555) 222-3344',
-          address: '1088 Ocean Drive, Miami, FL',
-          medical_history: 'Type 2 Diabetes, Allergy to Penicillin'
-        };
+      if (!user?.patient_id) {
+        throw new Error('Your account is not linked to a patient record. Please contact hospital support.');
       }
 
+      // Patient accounts may only request their own profile.
+      const pRes = await api.get(`/patients/${user.patient_id}`);
+      if (!pRes.success || !pRes.data) {
+        throw new Error('Your patient profile could not be found.');
+      }
+
+      const match = pRes.data;
       setPatientData(match);
 
       if (match) {
-        const matchNameLower = `${match.first_name} ${match.last_name}`.toLowerCase();
+        const [aptRes, emrRes, labRes, invRes] = await Promise.all([
+          api.get('/appointments', { patient_id: match.id }),
+          api.get('/emr/prescriptions', { patient_id: match.id }),
+          api.get('/lab-tests', { patient_id: match.id }),
+          api.get('/invoices', { patient_id: match.id })
+        ]);
 
-        // Fetch appointments for this patient
-        const aptRes = await api.get('/appointments');
-        const myApts = (aptRes.data || []).filter(
-          a => a.patient_id === match.id || (a.patient_name && a.patient_name.toLowerCase().includes(match.first_name.toLowerCase()))
-        );
-        setAppointments(myApts);
-
-        // Fetch EMR / Prescriptions
-        const emrRes = await api.get('/emr');
-        const myRx = (emrRes.data || []).filter(
-          rx => rx.patient_id === match.id || (rx.patient_name && rx.patient_name.toLowerCase().includes(match.first_name.toLowerCase()))
-        );
-        setPrescriptions(myRx);
-
-        // Fetch Lab Tests
-        const labRes = await api.get('/laboratory');
-        const myLabs = (labRes.data || []).filter(
-          l => l.patient_id === match.id || (l.patient_name && l.patient_name.toLowerCase().includes(match.first_name.toLowerCase()))
-        );
-        setLabTests(myLabs);
-
-        // Fetch Invoices
-        const invRes = await api.get('/billing');
-        const myInvs = (invRes.data || []).filter(
-          i => i.patient_id === match.id || (i.patient_name && i.patient_name.toLowerCase().includes(match.first_name.toLowerCase()))
-        );
-        setInvoices(myInvs);
+        setAppointments(aptRes.data || []);
+        setPrescriptions(emrRes.data || []);
+        setLabTests(labRes.data || []);
+        setInvoices(invRes.data || []);
       }
     } catch (err) {
       console.error('Error loading patient portal data:', err);
+      setPortalError(err.message || 'Unable to load your health records.');
     } finally {
       setLoading(false);
     }
@@ -131,8 +91,8 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
 
     try {
       const payload = {
-        patient_id: patientData?.id || 'pat1',
-        patient_name: patientData ? `${patientData.first_name} ${patientData.last_name}` : user.username,
+        patient_id: patientData.id,
+        patient_name: `${patientData.first_name} ${patientData.last_name}`,
         doctor_id: selectedDoc.id,
         doctor_name: selectedDoc.name,
         scheduled_at: new Date(bookingForm.scheduled_at).toISOString(),
@@ -155,20 +115,6 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
       setBookingMessage('Error: ' + err.message);
     } finally {
       setSubmittingBooking(false);
-    }
-  };
-
-  const handlePayInvoice = async (invId) => {
-    try {
-      const res = await api.post(`/billing/${invId}/pay`, {
-        amount_paid: 1000,
-        payment_method: 'Online Portal Card'
-      });
-      if (res.success) {
-        loadPatientData();
-      }
-    } catch (err) {
-      alert('Payment failed: ' + err.message);
     }
   };
 
@@ -236,6 +182,10 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
       {loading ? (
         <div className="bg-surface-container-lowest rounded-xl p-12 text-center text-outline text-xs border border-surface-container">
           Loading health records...
+        </div>
+      ) : portalError ? (
+        <div className="bg-error-container/30 border border-error/30 text-error rounded-xl p-6 text-center text-sm">
+          {portalError}
         </div>
       ) : (
         <div>
@@ -418,12 +368,9 @@ export default function PatientPortalView({ activeTab = 'appointments', setActiv
                       </div>
 
                       {inv.status !== 'Paid' && (
-                        <button
-                          onClick={() => handlePayInvoice(inv.id)}
-                          className="px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-xs font-semibold shadow-xs cursor-pointer transition-all"
-                        >
-                          Pay Online Now (${Number(inv.total_amount || 0).toFixed(2)})
-                        </button>
+                        <span className="text-xs text-outline">
+                          Please contact the billing office to arrange payment.
+                        </span>
                       )}
                     </div>
                   ))}

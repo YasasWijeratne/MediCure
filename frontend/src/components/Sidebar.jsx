@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import MediCureLogo from './MediCureLogo';
 
 export default function Sidebar({ activeTab, setActiveTab, onGoToLanding }) {
   const { hasPermission, currentRole } = useAuth();
@@ -31,17 +32,11 @@ export default function Sidebar({ activeTab, setActiveTab, onGoToLanding }) {
       {/* Brand Header */}
       <div className="h-16 px-space-md flex items-center justify-between border-b border-surface-container-low/80">
         <div className="flex items-center gap-space-sm cursor-pointer" onClick={() => setActiveTab(currentRole === 'Patient' ? 'appointments' : 'dashboard')}>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className="font-headline-sm text-headline-sm font-bold text-primary leading-none">MediCure</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-secondary-container text-on-secondary-container font-semibold">
-                {currentRole === 'Patient' ? 'PATIENT' : 'HMS'}
-              </span>
-            </div>
-            <span className="font-label-sm text-[11px] text-outline tracking-wider uppercase mt-0.5">
-              {currentRole === 'Patient' ? 'Patient Portal' : 'Clinical Operations'}
-            </span>
-          </div>
+          <MediCureLogo
+            size={38}
+            showWordmark
+            subtitle={currentRole === 'Patient' ? 'Patient Portal' : 'Clinical Operations'}
+          />
         </div>
       </div>
 
@@ -77,4 +72,3 @@ export default function Sidebar({ activeTab, setActiveTab, onGoToLanding }) {
     </aside>
   );
 }
-

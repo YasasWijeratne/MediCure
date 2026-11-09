@@ -1,4 +1,5 @@
 import React from 'react';
+import MediCureLogo from '../components/MediCureLogo';
 
 export default function LandingPageView({ onEnterPortal, onEnterPatientLogin, onEnterStaffLogin, onEnterAdminLogin }) {
   const handlePatientClick = onEnterPatientLogin || onEnterPortal;
@@ -11,13 +12,7 @@ export default function LandingPageView({ onEnterPortal, onEnterPatientLogin, on
         <div className="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between gap-6">
           {/* Logo */}
           <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm">
-              <span className="material-symbols-outlined text-[24px]">health_and_safety</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-headline-sm text-lg font-bold text-on-surface leading-none">MediCure</span>
-              <span className="font-label-sm text-[11px] text-outline tracking-wider uppercase mt-0.5">Hospital Management System</span>
-            </div>
+            <MediCureLogo size={42} showWordmark subtitle="Hospital Management System" />
           </div>
 
           {/* Navigation */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import PasswordInput from '../components/PasswordInput';
+import MediCureLogo from '../components/MediCureLogo';
 
 export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPatientLogin }) {
   const { login } = useAuth();
@@ -49,9 +50,7 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPat
       <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl border border-surface-container shadow-md p-8">
         {/* Brand */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-3 bg-primary rounded-xl flex items-center justify-center text-on-primary shadow-sm">
-            <span className="material-symbols-outlined text-[32px]">badge</span>
-          </div>
+          <MediCureLogo size={58} className="justify-center mx-auto mb-3" />
           <div className="flex items-center justify-center gap-1.5 mb-1">
             <h1 className="text-2xl font-bold text-on-surface tracking-tight font-headline-sm">MediCure Staff Portal</h1>
           </div>
@@ -136,4 +135,3 @@ export default function LoginPage({ onBackToLanding, onGoToAdminLogin, onGoToPat
     </div>
   );
 }
-
